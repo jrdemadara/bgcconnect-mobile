@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "927565971052",
+    "project_id": "bgcconnect-88832",
+    "storage_bucket": "bgcconnect-88832.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:927565971052:android:cd5b0be594fad165682249",
+        "android_client_info": {
+          "package_name": "org.jrdemadara.bgcconnect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvCoGOhgiDazrq8ZqZcDm-4UvtdDStr8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
