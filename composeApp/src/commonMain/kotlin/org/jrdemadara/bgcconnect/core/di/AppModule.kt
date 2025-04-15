@@ -1,11 +1,15 @@
 package org.jrdemadara.bgcconnect.core.di
 
 import com.russhwolf.settings.Settings
+import org.jrdemadara.AppDatabase
 import org.jrdemadara.bgcconnect.AppViewModel
 import org.jrdemadara.bgcconnect.core.PusherManager
 import org.jrdemadara.bgcconnect.core.RealtimeEventManager
+import org.jrdemadara.bgcconnect.core.local.DatabaseDriverFactory
+import org.jrdemadara.bgcconnect.core.local.DatabaseHelper
 import org.jrdemadara.bgcconnect.core.local.SessionManager
 import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.MessageRequestApi
+import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.MessageRequestDao
 import org.jrdemadara.bgcconnect.feature.login.data.LoginApi
 import org.jrdemadara.bgcconnect.feature.login.data.LoginRepositoryImpl
 import org.jrdemadara.bgcconnect.feature.login.domain.LoginRepository
@@ -28,28 +32,41 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-    viewModel { AppViewModel(get()) }
+    // Platform-related
     factory { getPlatform(this) }
+
+    // App-wide dependencies
     single { Settings() }
     single { SessionManager(get()) }
-    single { PusherManager() }
-    single { RealtimeEventManager(get()) }
 
-    singleOf(::LoginRepositoryImpl) { bind<LoginRepository>() }
+    // SQLDelight database setup
+    //single { DatabaseDriverFactory(get()) } // ✅ Only required on Android. Safe here.
+    single { AppDatabase(get<DatabaseDriverFactory>().createDriver()) }
+    single<DatabaseHelper> { DatabaseHelper(get()) }
+
+    // Real-time & messaging
+    single { PusherManager() }
+    single { MessageRequestDao(get<AppDatabase>().messageRequestQueries) }
+    single { RealtimeEventManager(get(), get(), get()) }
+
+    // Authentication & Login
     single { LoginApi(get()) }
-    single<LoginRepository> { LoginRepositoryImpl(get()) }
+    singleOf(::LoginRepositoryImpl) { bind<LoginRepository>() }
     single { LoginUseCase(get()) }
     viewModel { LoginViewModel(get(), get()) }
 
-    singleOf(::SearchMemberRepositoryImpl) { bind<SearchMemberRepository>() }
+    // Search
     single { SearchMemberApi(get()) }
-    single<SearchMemberRepository> { SearchMemberRepositoryImpl(get()) }
+    singleOf(::SearchMemberRepositoryImpl) { bind<SearchMemberRepository>() }
     single { SearchMemberUseCase(get()) }
     viewModel { SearchMemberViewModel(get()) }
 
-    singleOf(::MessageRequestRepositoryImpl) { bind<MessageRequestRepository>()}
+    // Message Requests
     single { MessageRequestApi(get()) }
-    single<MessageRequestRepository> { MessageRequestRepositoryImpl(get()) }
+    singleOf(::MessageRequestRepositoryImpl) { bind<MessageRequestRepository>() }
     single { MessageRequestUseCase(get()) }
     viewModel { MessageRequestViewModel(get(), get(), get()) }
+
+    // App-level ViewModel
+    viewModel { AppViewModel(get()) }
 }

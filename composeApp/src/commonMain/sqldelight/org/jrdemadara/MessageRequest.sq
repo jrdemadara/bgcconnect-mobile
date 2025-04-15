@@ -1,0 +1,34 @@
+CREATE TABLE MessageRequest (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    senderId INTEGER NOT NULL,
+    firstname TEXT NOT NULL,
+    lastname TEXT NOT NULL,
+    avatar TEXT,
+    recipientId INTEGER NOT NULL,
+    status TEXT NOT NULL,
+    requestedAt TEXT NOT NULL
+);
+
+selectAll:
+SELECT * FROM MessageRequest
+WHERE recipientId = ?;
+
+selectAllPending:
+SELECT * FROM MessageRequest
+WHERE recipientId = ? AND status = 'pending';
+
+selectRequest:
+SELECT * FROM MessageRequest
+WHERE id = ?;
+
+insertMessageRequest:
+INSERT INTO  MessageRequest(senderId, firstname, lastname, avatar , recipientId, status, requestedAt)
+VALUES (?,?,?, ?, ?, ?, ?);
+
+updateMessageRequestStatus:
+UPDATE MessageRequest
+SET status = ?
+WHERE id = ?;
+
+clearRequests:
+DELETE FROM MessageRequest;

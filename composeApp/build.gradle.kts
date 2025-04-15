@@ -85,7 +85,9 @@ kotlin {
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.no.arg)
 
-           implementation(libs.pusher)
+            implementation(libs.pusher)
+
+            implementation(libs.sqldelight.coroutines.extensions)
 
 
         }
@@ -139,7 +141,7 @@ dependencies {
 
 sqldelight {
     databases {
-        create("LocalDatabase") {
+        create("AppDatabase") {
             packageName.set("org.jrdemadara")
         }
     }

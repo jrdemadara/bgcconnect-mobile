@@ -13,6 +13,7 @@ data class MessageRequestData(
 @Serializable
 data class IncomingRequest(
     val sender: Sender,
+    val status: String,
     @SerialName("requested_at")
     val requestedAt: String
 )
