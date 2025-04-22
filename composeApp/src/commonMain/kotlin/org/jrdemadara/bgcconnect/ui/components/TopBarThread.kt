@@ -1,6 +1,7 @@
 package org.jrdemadara.bgcconnect.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Badge
@@ -14,6 +15,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -32,34 +34,62 @@ import org.jetbrains.compose.resources.painterResource
 import org.jrdemadara.bgcconnect.core.Routes
 import org.jrdemadara.bgcconnect.ui.icons.HeroBell
 import org.jrdemadara.bgcconnect.ui.icons.HeroUser
+import org.jrdemadara.bgcconnect.util.capitalizeWords
 import org.jrdemadara.bgcconnect.util.currentRoute
+import org.jrdemadara.bgcconnect.util.formatTimestamp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBarThread(navController: NavController, image: String, name: String, status: Boolean) {
+fun TopBarThread(
+    navController: NavController,
+    avatar: String,
+    name: String,
+    isOnline: Boolean,
+    lastSeen: String) {
     TopAppBar(
         title = {
             Row {
                 AsyncImage(
-                    model = image,
+                    model = avatar,
                     contentDescription = "User Photo",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
                 )
-                Column {
+                Spacer(modifier = Modifier.width(5.dp))
+                Column(
+                    verticalArrangement = Arrangement.spacedBy((-7).dp)) {
                     Text(
-                        text = name,
+                        text = name.capitalizeWords(),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = if (status) "Active" else "Away",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(Color(0xFF4CAF50), CircleShape) // green color
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = when {
+                                isOnline -> "Online"
+                                lastSeen.isNotEmpty() -> "last seen ${formatTimestamp(lastSeen)}"
+                                else -> "Inactive"
+                            },
+                            fontSize = 14.sp,
+                            color = when {
+                                isOnline -> Color(0xFF4CAF50) // Green
+                                lastSeen.isNotEmpty() -> Color.Gray
+                                else -> Color(0xFFF44336) // Red
+                            }
+                        )
+                    }
+
                 }
             }
 
@@ -87,8 +117,18 @@ fun TopBarThread(navController: NavController, image: String, name: String, stat
                 // Handle other action
             }) {
                 Icon(
-                    imageVector = Lucide.Check,
-                    contentDescription = "More Actions",
+                    imageVector = Lucide.Phone,
+                    contentDescription = "Voice Call",
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            IconButton(onClick = {
+                // Handle other action
+            }) {
+                Icon(
+                    imageVector = Lucide.Video,
+                    contentDescription = "Video Call",
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )

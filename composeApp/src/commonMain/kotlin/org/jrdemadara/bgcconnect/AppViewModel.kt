@@ -1,6 +1,8 @@
 package org.jrdemadara.bgcconnect
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import org.jrdemadara.bgcconnect.core.RealtimeEventManager
 
 class AppViewModel(
@@ -8,7 +10,9 @@ class AppViewModel(
 ) : ViewModel() {
 
     init {
-        realtimeEventManager.start()
-        println("🚀 AppViewModel initialized, RealtimeEventManager started.")
+        viewModelScope.launch {
+            realtimeEventManager.start()
+            println("🚀 AppViewModel initialized, RealtimeEventManager started.")
+        }
     }
 }

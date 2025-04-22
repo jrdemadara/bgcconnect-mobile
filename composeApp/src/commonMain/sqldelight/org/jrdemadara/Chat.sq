@@ -1,0 +1,24 @@
+CREATE TABLE Chat (
+    id INTEGER NOT NULL PRIMARY KEY,
+    userId INTEGER NOT NULL,
+    chatType TEXT NOT NULL, -- direct, group, topic
+    name TEXT,               -- optional for direct chats
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);
+
+selectAllChats:
+SELECT * FROM Chat WHERE userId = ?;
+
+selectAllChatIds:
+SELECT id FROM Chat;
+
+insertChat:
+INSERT INTO Chat(id, userId, chatType, name, createdAt, updatedAt)
+VALUES (?, ?,?, ?, ?, ?);
+
+deleteChatById:
+DELETE FROM Chat WHERE id = ?;
+
+deleteAllChats:
+DELETE FROM Chat;

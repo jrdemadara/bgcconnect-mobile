@@ -1,0 +1,41 @@
+CREATE TABLE User (
+    id INTEGER NOT NULL PRIMARY KEY,
+    firstname TEXT NOT NULL,
+    lastname TEXT NOT NULL,
+    avatar TEXT,
+    isOnline INTEGER NOT NULL DEFAULT 0,
+    lastSeen TEXT
+);
+
+selectAllUsers:
+SELECT * FROM User;
+
+selectUser:
+SELECT * FROM User WHERE id = ? LIMIT 1;
+
+selectUserById:
+SELECT firstname || ' ' || lastname AS fullName, avatar, isOnline, lastSeen FROM User WHERE id = ? LIMIT 1;
+
+selectUserAvatar:
+SELECT avatar FROM User WHERE id = ? LIMIT 1;
+
+selectIsOnline:
+SELECT isOnline FROM User WHERE id = ? LIMIT 1;
+
+
+insertUser:
+INSERT OR REPLACE INTO User(id, firstname, lastname, avatar, isOnline, lastSeen)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateUserOnlineStatus:
+UPDATE User
+SET isOnline = ?
+WHERE id = ?;
+
+updateUserLastSeen:
+UPDATE User
+SET lastSeen = ?
+WHERE id = ?;
+
+deleteUserById:
+DELETE FROM User WHERE id = ?;

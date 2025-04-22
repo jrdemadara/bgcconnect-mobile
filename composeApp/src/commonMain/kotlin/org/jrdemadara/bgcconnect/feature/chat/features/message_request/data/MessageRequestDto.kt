@@ -9,10 +9,16 @@ data class MessageRequestData(
     val recipientId: Int,
 )
 
+@Serializable
+data class AcceptDeclineMessageRequestData(
+    val id: Int,
+)
+
 // Incoming Request
 @Serializable
 data class IncomingRequest(
     val sender: Sender,
+    val id: Int,
     val status: String,
     @SerialName("requested_at")
     val requestedAt: String

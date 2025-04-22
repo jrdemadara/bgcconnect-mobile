@@ -40,6 +40,7 @@ fun TopBarSecondary(navController: NavController) {
 
     val screenTitle = when (currentRoute) {
         Routes.SEARCH_MEMBER -> "New Chat"
+        Routes.MESSAGE_REQUEST -> "Message Requests"
         else -> "BGC Connect"
     }
 
@@ -75,7 +76,7 @@ fun TopBarSecondary(navController: NavController) {
                 // Handle other action
             }) {
                 Icon(
-                    imageVector = Lucide.Check,
+                    imageVector = Lucide.Dot,
                     contentDescription = "More Actions",
                     modifier = Modifier.size(28.dp),
                     tint = MaterialTheme.colorScheme.onSurface

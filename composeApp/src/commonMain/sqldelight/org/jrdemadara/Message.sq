@@ -1,0 +1,26 @@
+CREATE TABLE Message (
+    id INTEGER NOT NULL PRIMARY KEY,
+    senderId INTEGER NOT NULL,
+    chatId INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    messageType TEXT NOT NULL DEFAULT 'text', -- text, image, video, file
+    replyTo INTEGER,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);
+
+selectMessagesByChat:
+SELECT * FROM Message WHERE chatId = ? ORDER BY createdAt DESC;
+
+getLastMessageForChat:
+SELECT * FROM Message
+WHERE chatId = ?
+ORDER BY createdAt DESC
+LIMIT 1;
+
+insertMessage:
+INSERT INTO Message(id, senderId, chatId, content, messageType, replyTo, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteMessagesByChat:
+DELETE FROM Message WHERE chatId = ?;

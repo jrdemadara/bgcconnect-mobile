@@ -4,6 +4,7 @@ import io.ktor.http.*
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -14,10 +15,9 @@ import kotlinx.serialization.json.jsonPrimitive
 
 class MessageRequestApi(private val client: HttpClient) {
 
-    suspend fun messageRequest(recipientId: Int, token: String): String {
+    suspend fun sendMessageRequest(recipientId: Int, token: String): String {
         val response: HttpResponse = client.post("/api/message-request") {
             header(HttpHeaders.Authorization, "Bearer $token")
-
             setBody(MessageRequestData(recipientId))
         }
 
@@ -43,6 +43,67 @@ class MessageRequestApi(private val client: HttpClient) {
             HttpStatusCode.Forbidden -> {
                 val responseBody: JsonObject = response.body()
                 throw Exception(responseBody["message"]!!.jsonPrimitive.content)
+            }
+
+            else -> {
+                throw Exception("Unexpected error: ${response.status}")
+            }
+        }
+    }
+
+    suspend fun acceptMessageRequest(id: Int, token: String): String {
+        val response: HttpResponse = client.patch("/api/message-request-accept") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody(AcceptDeclineMessageRequestData(id))
+        }
+
+        return when (response.status) {
+            HttpStatusCode.OK -> {
+                "accepted"
+            }
+
+            HttpStatusCode.Unauthorized -> {
+                throw Exception("Unauthorized: Invalid credentials.")
+            }
+
+            HttpStatusCode.UnprocessableEntity -> {
+                throw Exception("Unprocessable Entity: Invalid keyword or data format.")
+            }
+
+            HttpStatusCode.NotFound -> {
+                throw Exception("Not Found: Request not found.")
+            }
+
+            else -> {
+                throw Exception("Unexpected error: ${response.status}")
+            }
+        }
+    }
+
+
+    suspend fun declineMessageRequest(id: Int, token: String): String {
+        val response: HttpResponse = client.patch("/api/message-request-decline") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            setBody(AcceptDeclineMessageRequestData(id))
+        }
+
+        println(response.status)
+
+        return when (response.status) {
+            HttpStatusCode.OK -> {
+                "declined"
+            }
+
+            HttpStatusCode.Unauthorized -> {
+                throw Exception("Unauthorized: Invalid credentials.")
+            }
+
+            HttpStatusCode.UnprocessableEntity -> {
+                throw Exception("Unprocessable Entity: Invalid keyword or data format.")
+            }
+
+            HttpStatusCode.NotFound -> {
+                throw Exception("Not Found: Request not found.")
             }
 
             else -> {

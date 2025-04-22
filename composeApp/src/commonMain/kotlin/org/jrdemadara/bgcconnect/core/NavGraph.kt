@@ -20,6 +20,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.russhwolf.settings.Settings
+import org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation.MessageRequestScreen
 import org.jrdemadara.bgcconnect.feature.chat.presentation.ChatScreen
 import org.jrdemadara.bgcconnect.feature.home.presentation.HomeScreen
 import org.jrdemadara.bgcconnect.feature.login.presentation.LoginScreen
@@ -51,6 +52,7 @@ object Routes {
 
     const val CHAT = "chat"
     const val SEARCH_MEMBER = "search_member"
+    const val MESSAGE_REQUEST = "message_request"
     const val THREAD = "thread"
 
     const val COMMUNITIES = "communities"
@@ -153,13 +155,23 @@ fun NavGraphBuilder.chatNavGraph(navController: NavHostController) {
             }
         }
 
+        composable(Routes.MESSAGE_REQUEST) {
+            Scaffold(
+                topBar = { TopBarSecondary(navController) },
+
+                ) { paddingValues ->
+                MessageRequestScreen(navController, paddingValues)
+            }
+        }
+
         composable(
             Routes.THREAD + "/{id}", // Dynamic argument
             arguments = listOf(navArgument("id") { type = NavType.IntType })
         ) { backStackEntry ->
-            val memberId = backStackEntry.arguments?.getInt("id")
-            // Pass the memberId to the screen directly
-            ThreadScreen(navController, memberId)
+            val chatId = backStackEntry.arguments?.getInt("id")
+            if (chatId != null) {
+                ThreadScreen(navController, chatId)
+            }
         }
     }
 }

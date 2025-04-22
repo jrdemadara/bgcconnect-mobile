@@ -10,26 +10,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import org.koin.compose.viewmodel.koinViewModel
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.Lucide
 import com.composables.icons.lucide.Send
-import kotlinx.coroutines.launch
-import org.jrdemadara.bgcconnect.core.Routes
-import org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation.MessageRequestState
 import org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation.MessageRequestViewModel
+import org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation.SendMessageRequestState
 import org.jrdemadara.bgcconnect.feature.chat.features.search_member.data.MemberDto
 import org.jrdemadara.bgcconnect.ui.components.CustomSearchField
 import org.jrdemadara.bgcconnect.util.capitalizeWords
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun SearchMemberScreen(navController: NavController, paddingValues: PaddingValues) {
@@ -39,7 +37,7 @@ fun SearchMemberScreen(navController: NavController, paddingValues: PaddingValue
 
     val members by viewModel.members.collectAsState()
     val state by viewModel.state.collectAsState()
-    val requestState by messageRequestViewModel.state.collectAsState()
+    val requestState by messageRequestViewModel.sendState.collectAsState()
 
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -55,8 +53,8 @@ fun SearchMemberScreen(navController: NavController, paddingValues: PaddingValue
     LaunchedEffect(requestState) {
         val memberId = currentlySendingMemberId
         when (val state = requestState) {
-            is MessageRequestState.Loading -> Unit
-            is MessageRequestState.Success -> {
+            is SendMessageRequestState.Loading -> Unit
+            is SendMessageRequestState.Success -> {
                 memberId?.let {
                     loadingMap[it] = false
                     sentMap[it] = true
@@ -65,7 +63,7 @@ fun SearchMemberScreen(navController: NavController, paddingValues: PaddingValue
                 currentlySendingMemberId = null
             }
 
-            is MessageRequestState.Error -> {
+            is SendMessageRequestState.Error -> {
                 memberId?.let {
                     loadingMap[it] = false
                     errorMap[it] = state.error
@@ -122,7 +120,7 @@ fun SearchMemberScreen(navController: NavController, paddingValues: PaddingValue
                             onClick = {
                                 currentlySendingMemberId = member.id
                                 loadingMap[member.id] = true
-                                messageRequestViewModel.messageRequest(member.id)
+                                messageRequestViewModel.sendMessageRequest(member.id)
                             }
                         )
                     }

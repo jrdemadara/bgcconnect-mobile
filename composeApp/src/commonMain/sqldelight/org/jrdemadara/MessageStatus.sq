@@ -1,0 +1,25 @@
+CREATE TABLE MessageStatus (
+    id INTEGER NOT NULL PRIMARY KEY,
+    messageId INTEGER NOT NULL,
+    userId INTEGER NOT NULL,
+    status TEXT NOT NULL, -- sent, delivered, read
+    updatedAt TEXT NOT NULL
+);
+
+selectStatusByMessageId:
+SELECT * FROM MessageStatus WHERE messageId = ?;
+
+selectStatusForUser:
+SELECT * FROM MessageStatus WHERE userId = ? AND status = ?;
+
+insertStatus:
+INSERT INTO MessageStatus(id, messageId, userId, status, updatedAt)
+VALUES (?, ?, ?,?, ?);
+
+updateStatus:
+UPDATE MessageStatus
+SET status = ?, updatedAt = ?
+WHERE messageId = ? AND userId = ?;
+
+deleteStatusesForMessage:
+DELETE FROM MessageStatus WHERE messageId = ?;

@@ -1,7 +1,7 @@
 package org.jrdemadara.bgcconnect.feature.chat.presentation
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,14 +35,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import bgcconnect.composeapp.generated.resources.Res
-import bgcconnect.composeapp.generated.resources.food
 import bgcconnect.composeapp.generated.resources.u1
-import bgcconnect.composeapp.generated.resources.u2
-import bgcconnect.composeapp.generated.resources.u3
 import coil3.compose.AsyncImage
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
-import org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation.MessageRequestViewModel
+import org.jrdemadara.bgcconnect.core.Routes
 import org.jrdemadara.bgcconnect.ui.icons.HeroMagnifyingGlass
 import org.jrdemadara.bgcconnect.ui.icons.HeroUserGroup
 import org.jrdemadara.bgcconnect.ui.icons.HeroXMark
@@ -52,8 +47,9 @@ import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun ChatScreen(navController: NavController, paddingValues: PaddingValues) {
-    val messageRequestViewModel = koinViewModel<MessageRequestViewModel>()
-    val incomingRequests by messageRequestViewModel.incomingRequests.collectAsState()
+    val chatViewModel = koinViewModel<ChatViewModel>()
+    val chatState by chatViewModel.chatState.collectAsState()
+    val chats = chatViewModel.chats.collectAsState(initial = emptyList()).value
 
     Column(  modifier = Modifier
         .padding(horizontal = 16.dp)
@@ -61,68 +57,172 @@ fun ChatScreen(navController: NavController, paddingValues: PaddingValues) {
         .fillMaxSize())
     {
 
-        if (incomingRequests.isNotEmpty()) {
-            Text(
-                text = "Message Requests",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 16.dp)
+            ) {
+                IconButton(onClick = {
+                    // Navigate to the Search screen
+                    // navController.navigate(Routes.SEARCH)
+                }) {
+                    Icon(
+                        imageVector = HeroMagnifyingGlass,
+                        contentDescription = "Search Icon"
+                    )
+                }
 
-            LazyColumn {
-                items(incomingRequests) { request ->
-                    MessageRequestItem(
-                        fullName = "${request.firstname} ${request.lastname}",
-                        date = formatDate(request.requestedAt),
-                        avatarUrl = request.avatar
+                Text(
+                    text = "Search",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(onClick = {
+                    // Navigate to the Search screen
+                    // navController.navigate(Routes.SEARCH)
+                }) {
+                    Icon(
+                        imageVector = HeroUserGroup,
+                        contentDescription = "User group icon"
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "Create a group",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(text = "Stay on the same page with everyone", style = MaterialTheme.typography.titleSmall, color = Color.DarkGray)
+                }
+                IconButton(onClick = {
+                    // Navigate to the Search screen
+                    // navController.navigate(Routes.SEARCH)
+                }) {
+                    Icon(
+                        imageVector = HeroXMark,
+                        contentDescription = "Close"
                     )
                 }
             }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
+        if (chats.isNotEmpty()) {
+            LazyColumn {
+                items(chats) { chat ->
+                    ChatItem(
+                        chatId = chat.chatId,
+                        userName = chat.fullName ?: "Unknown", // You can fetch the name of the chat
+                        message = chat.lastMessage ?: "You can now start your conversation.", // Get last message if available
+                        date = chat.timestamp ?: "No date", // Get timestamp if available
+                        avatar = chat.avatar ?: Res.drawable.u1.toString(), // Provide a default avatar if not available
+                        status = "unread",
+                        isOnline = chat.isOnline ?: false,
+                        navController = navController
+                    )
+                }
+            }
+        } else {
+            Text(text = "Say hi to someone! Start a conversation.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
         }
     }
 }
 
+
 @Composable
-fun MessageRequestItem(
-    fullName: String,
+fun ChatItem(
+    chatId: Long,
+    userName: String,
+    message: String,
     date: String,
-    avatarUrl: String?
+    avatar: String,
+    status: String,
+    isOnline: Boolean,
+    navController: NavController
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp)
+            .clickable {
+                navController.navigate("${Routes.THREAD}/$chatId")
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AsyncImage(
-            model = avatarUrl,
-            contentDescription = "User Photo",
-            contentScale = ContentScale.Crop,
+
+        Box(
             modifier = Modifier
                 .size(48.dp)
-                .clip(CircleShape)
-        )
+        ) {
+            AsyncImage(
+                model = avatar,
+                contentDescription = "User Photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(CircleShape)
+            )
+
+            // Green dot for online indicator
+            if (isOnline){
+                Box(
+                    modifier = Modifier
+                        .size(12.dp)
+                        .align(Alignment.BottomEnd)
+                        .background(Color.White, CircleShape) // optional border
+                        .padding(2.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF4CAF50), CircleShape) // green color
+                    )
+                }
+            }
+        }
 
         Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = fullName.capitalizeWords(),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
+                text = userName.capitalizeWords(),
+                fontWeight = if (status == "unread") FontWeight.Bold else FontWeight.Normal
             )
-
             Text(
-                text = "wants to connect with you",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Gray,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                fontWeight = if (status == "unread") FontWeight.Bold else FontWeight.Normal
             )
         }
 
         Text(
-            text = date,
+            text = formatDate(date) ,
             style = MaterialTheme.typography.labelSmall,
             color = Color.Gray
         )

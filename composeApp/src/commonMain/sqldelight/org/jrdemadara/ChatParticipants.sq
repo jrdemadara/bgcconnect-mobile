@@ -1,0 +1,23 @@
+CREATE TABLE ChatParticipant (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT ,
+    chatId INTEGER NOT NULL,
+    userId INTEGER NOT NULL,
+    role TEXT,               -- member, admin
+    joinedAt TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);
+
+selectParticipantsByChatId:
+SELECT * FROM ChatParticipant WHERE chatId = ?;
+
+insertParticipant:
+INSERT INTO ChatParticipant(chatId, userId, role, joinedAt, createdAt, updatedAt)
+VALUES ( ?, ?, ?, ?, ?, ?);
+
+deleteParticipantsByChat:
+DELETE FROM ChatParticipant WHERE chatId = ?;
+
+getOtherParticipantId:
+SELECT userId FROM ChatParticipant
+WHERE chatId = ? AND userId != ? LIMIT 1;

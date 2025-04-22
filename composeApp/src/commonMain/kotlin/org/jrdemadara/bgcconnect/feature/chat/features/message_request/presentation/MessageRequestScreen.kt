@@ -1,207 +1,156 @@
 package org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-import org.koin.compose.viewmodel.koinViewModel
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import coil3.compose.AsyncImage
-import com.composables.icons.lucide.Check
-import com.composables.icons.lucide.Lucide
-import com.composables.icons.lucide.Send
-import kotlinx.coroutines.launch
-import org.jrdemadara.bgcconnect.core.Routes
-import org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation.MessageRequestState
-import org.jrdemadara.bgcconnect.feature.chat.features.message_request.presentation.MessageRequestViewModel
-import org.jrdemadara.bgcconnect.feature.chat.features.search_member.data.MemberDto
-import org.jrdemadara.bgcconnect.feature.chat.features.search_member.presentation.SearchMemberState
-import org.jrdemadara.bgcconnect.feature.chat.features.search_member.presentation.SearchMemberViewModel
-import org.jrdemadara.bgcconnect.ui.components.CustomSearchField
 import org.jrdemadara.bgcconnect.util.capitalizeWords
+import org.jrdemadara.bgcconnect.util.formatDate
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 fun MessageRequestScreen(navController: NavController, paddingValues: PaddingValues) {
-    val messageRequestViewModel = koinViewModel<MessageRequestViewModel>()
-    val incomingRequests by messageRequestViewModel.incomingRequests.collectAsState()
+    val viewModel = koinViewModel<MessageRequestViewModel>()
+    val incomingRequests by viewModel.incomingRequests.collectAsState()
+    val acceptState by viewModel.acceptState.collectAsState()
+    val declineState by viewModel.declineState.collectAsState()
 
+    Column(  modifier = Modifier
+        .padding(horizontal = 16.dp)
+        .padding(paddingValues)
+        .fillMaxSize())
+    {
 
-
-    val members by viewModel.members.collectAsState()
-    val state by viewModel.state.collectAsState()
-    val requestState by messageRequestViewModel.state.collectAsState()
-
-    val focusRequester = remember { FocusRequester() }
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val key = remember { mutableStateOf("") }
-    val selectedMembers = remember { mutableStateMapOf<Int, MemberDto>() }
-
-    val loadingMap = remember { mutableStateMapOf<Int, Boolean>() }
-    val sentMap = remember { mutableStateMapOf<Int, Boolean>() }
-    val errorMap = remember { mutableStateMapOf<Int, String?>() }
-    var currentlySendingMemberId by remember { mutableStateOf<Int?>(null) }
-
-    // Handle state changes from messageRequestViewModel
-    LaunchedEffect(requestState) {
-        val memberId = currentlySendingMemberId
-        when (val state = requestState) {
-            is MessageRequestState.Loading -> Unit
-            is MessageRequestState.Success -> {
-                memberId?.let {
-                    loadingMap[it] = false
-                    sentMap[it] = true
-                    errorMap[it] = null
+        if (incomingRequests.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            LazyColumn {
+                items(incomingRequests) { request ->
+                    MessageRequestItem(
+                        fullName = "${request.firstname} ${request.lastname}",
+                        date = formatDate(request.requestedAt),
+                        avatarUrl = request.avatar,
+                        onAccept = {
+                            viewModel.acceptRequest(request.id.toInt())
+                        },
+                        onAcceptLoading = acceptState is AcceptMessageRequestState.Loading &&
+                                (acceptState as? AcceptMessageRequestState.Loading)?.requestId == request.id.toInt(),
+                        onDecline = {
+                            viewModel.declineRequest(request.id.toInt())
+                        },
+                        onDeclineLoading = declineState is DeclineMessageRequestState.Loading &&
+                                (declineState as? DeclineMessageRequestState.Loading)?.requestId == request.id.toInt(),
+                    )
                 }
-                currentlySendingMemberId = null
             }
 
-            is MessageRequestState.Error -> {
-                memberId?.let {
-                    loadingMap[it] = false
-                    errorMap[it] = state.error
-                }
-                currentlySendingMemberId = null
-            }
-
-            else -> Unit
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .padding(horizontal = 16.dp)
-            .padding(paddingValues)
-            .fillMaxSize()
-    ) {
-
-        CustomSearchField(
-            label = "",
-            value = key.value,
-            onValueChange = {
-                key.value = it
-                viewModel.onSearchQueryChanged(it)
-            },
-            modifier = Modifier
-                .padding(top = 5.dp)
-                .focusRequester(focusRequester),
-            keyboardActions = KeyboardActions(onNext = { keyboardController?.hide() }),
-            enabled = true,
-        )
-
-        if (state is SearchMemberState.Loading) {
-            CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
-        }
-
-        if (state is SearchMemberState.Error) {
-            Text("Error: ${(state as SearchMemberState.Error).error}")
-        }
-
-        if (state is SearchMemberState.Success) {
-            if (members.isNotEmpty()) {
-                LazyColumn(modifier = Modifier.padding(top = 5.dp)) {
-                    items(members) { member ->
-                        val isLoading = loadingMap[member.id] == true
-                        val isSent = sentMap[member.id] == true
-                        val error = errorMap[member.id]
-
-                        MemberItem(
-                            member = member,
-                            isLoading = isLoading,
-                            isSent = isSent,
-                            error = error,
-                            onClick = {
-                                currentlySendingMemberId = member.id
-                                loadingMap[member.id] = true
-                                messageRequestViewModel.messageRequest(member.id)
-                            }
-                        )
-                    }
-                }
-            } else {
-                Text("No members found.")
-            }
+            Spacer(modifier = Modifier.height(16.dp))
+        } else {
+            Text("At this moment, No one cares about you!")
         }
     }
 }
 
 @Composable
-fun MemberItem(
-    member: MemberDto,
-    isLoading: Boolean,
-    isSent: Boolean,
-    error: String?,
-    onClick: (MemberDto) -> Unit
+fun MessageRequestItem(
+    fullName: String,
+    date: String,
+    avatarUrl: String?,
+    onAccept: () -> Unit = {},
+    onAcceptLoading: Boolean,
+    onDecline: () -> Unit = {},
+    onDeclineLoading: Boolean,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 8.dp), // spacing between items
         verticalAlignment = Alignment.CenterVertically
     ) {
         AsyncImage(
-            model = member.avatar,
+            model = avatarUrl,
             contentDescription = "User Photo",
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(48.dp)
+                .size(82.dp)
                 .clip(CircleShape)
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "${member.firstname.capitalizeWords()} ${member.lastname.capitalizeWords()}",
-                style = MaterialTheme.typography.bodyLarge
+                text = fullName.capitalizeWords(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
             )
 
-            error?.let {
-                Text(
-                    text = it,
-                    color = Color.Red,
-                    fontSize = 12.sp
-                )
-            }
-        }
+            Text(
+                text = date,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
 
-        Button(
-            onClick = { onClick(member) },
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-            enabled = !isLoading && !isSent
-        ) {
-            when {
-                isLoading -> CircularProgressIndicator(
-                    color = Color.White,
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(18.dp)
-                )
+            Spacer(modifier = Modifier.height(4.dp))
 
-                isSent -> Icon(
-                    imageVector = Lucide.Check,
-                    contentDescription = "Sent",
-                    modifier = Modifier.size(18.dp),
-                    tint = Color.White
-                )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onAccept,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (onAcceptLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    }else{
+                        Text("Accept")
+                    }
+                }
 
-                else -> Icon(
-                    imageVector = Lucide.Send,
-                    contentDescription = "Send",
-                    modifier = Modifier.size(18.dp),
-                    tint = Color.White
-                )
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = onDecline,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondary
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    if (onDeclineLoading) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(24.dp))
+                    }else{
+                        Text("Decline", color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
             }
         }
     }

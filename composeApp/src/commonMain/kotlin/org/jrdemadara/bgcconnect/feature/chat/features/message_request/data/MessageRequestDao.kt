@@ -20,13 +20,14 @@ class MessageRequestDao(private val queries: MessageRequestQueries) {
 
      fun insert(request: MessageRequest) {
         queries.insertMessageRequest(
+            id = request.id,
             senderId = request.senderId,
             firstname = request.firstname,
             lastname = request.lastname,
             avatar = request.avatar,
             recipientId = request.recipientId,
             status = request.status,
-            requestedAt = request.requestedAt
+            requestedAt = request.requestedAt,
         )
     }
 

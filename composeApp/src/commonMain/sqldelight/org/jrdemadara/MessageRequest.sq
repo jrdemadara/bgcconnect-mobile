@@ -1,5 +1,5 @@
 CREATE TABLE MessageRequest (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY,
     senderId INTEGER NOT NULL,
     firstname TEXT NOT NULL,
     lastname TEXT NOT NULL,
@@ -22,8 +22,8 @@ SELECT * FROM MessageRequest
 WHERE id = ?;
 
 insertMessageRequest:
-INSERT INTO  MessageRequest(senderId, firstname, lastname, avatar , recipientId, status, requestedAt)
-VALUES (?,?,?, ?, ?, ?, ?);
+INSERT INTO  MessageRequest(id, senderId, firstname, lastname, avatar , recipientId, status, requestedAt)
+VALUES (?,?,?,?, ?, ?, ?, ?);
 
 updateMessageRequestStatus:
 UPDATE MessageRequest

@@ -72,7 +72,7 @@ fun TopBar(navController: NavController) {
         ),
         actions = {
             IconButton(onClick = {
-                // Handle notification icon click
+                navController.navigate(Routes.MESSAGE_REQUEST)
             }) {
                 BadgedBox(
                     badge = {
