@@ -3,11 +3,9 @@ package org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -19,16 +17,21 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import org.jrdemadara.Message
-import org.jrdemadara.User
-import org.jrdemadara.bgcconnect.core.PusherManager
+import org.jrdemadara.SelectMessagesWithStatus
+import org.jrdemadara.bgcconnect.core.pusher.PusherManager
 import org.jrdemadara.bgcconnect.core.local.SessionManager
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageStatusDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.UserDao
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.TopBarData
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.MarkAsReadUseCase
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.SendMessageUseCase
-import org.jrdemadara.bgcconnect.feature.chat.presentation.ChatState
+import org.jrdemadara.bgcconnect.getCurrentTimestamp
+import org.jrdemadara.bgcconnect.util.dateNowIso
+import org.jrdemadara.bgcconnect.util.retry
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 sealed class SendChatState {
     object Idle : SendChatState()
@@ -44,6 +47,7 @@ class ThreadViewModel(
     private val messageDao: MessageDao,
     private val messageStatusDao: MessageStatusDao,
     private val sendMessageUseCase: SendMessageUseCase,
+    private val markAsReadUseCase: MarkAsReadUseCase,
     private val pusherManager: PusherManager
 ): ViewModel() {
     private val token = sessionManager.getToken()
@@ -52,13 +56,48 @@ class ThreadViewModel(
         SendChatState.Idle)
     val sendChatState = _sendChatState.asStateFlow()
 
-     suspend fun sendChat(chatId: Int, content: String, messageType: String, replyTo: Int) {
+    init {
+        observeAndResendUnsentMessages()
+    }
+
+     fun sendChat(chatId: Int, content: String, messageType: String, replyTo: Int) {
+         val message = Message(
+             id = 0,
+             remoteId = null,
+             senderId = id.toLong(),
+             chatId = chatId.toLong(),
+             content = content,
+             messageType = messageType,
+             replyTo = replyTo.toLong(),
+             sendStatus = "sending",
+             createdAt = getCurrentTimestamp.nowIsoUtc(),
+             updatedAt = getCurrentTimestamp.nowIsoUtc(),
+         )
+
+         messageDao.insertMessage(message)
+
         _sendChatState.value = SendChatState.Loading
-        try {
-            val result = sendMessageUseCase(chatId, content, messageType, replyTo, token.toString())
-            _sendChatState.value = SendChatState.Success(result)
-        } catch (e: Exception) {
-            _sendChatState.value = SendChatState.Error(e.message ?: "Unknown error")
+
+    }
+
+    @OptIn(ExperimentalTime::class)
+    private fun observeAndResendUnsentMessages() {
+        viewModelScope.launch {
+            messageDao.getUnsentMessages(id.toLong())
+                .collect { unsentMessages ->
+                    unsentMessages.forEach { message ->
+                        try {
+                            sendMessageUseCase(message.id.toInt(), message.chatId.toInt(), message.content, message.messageType,
+                                message.replyTo?.toInt() ?: 0, message.id.toInt(), token.toString())
+                        } catch (e: Exception) {
+                            messageDao.updateMessageSendStatusFailed(
+                                messageId = message.id,
+                                status = "failed",
+                                updatedAt = getCurrentTimestamp.nowIsoUtc(),
+                            )
+                        }
+                    }
+                }
         }
     }
 
@@ -88,8 +127,8 @@ class ThreadViewModel(
         }
     }
 
-    private val _messages = MutableStateFlow<List<Message>>(emptyList())
-    val messages: StateFlow<List<Message>> = _messages
+    private val _messages = MutableStateFlow<List<SelectMessagesWithStatus>>(emptyList())
+    val messages: StateFlow<List<SelectMessagesWithStatus>> = _messages
 
     fun loadMessages(chatId: Long) {
         viewModelScope.launch {
@@ -122,5 +161,23 @@ class ThreadViewModel(
 
     fun sendTyping(chatId: Long) {
         pusherManager.sendTypingEvent(chatId)
+    }
+
+    fun markMessageAsRead(chatId: Int, messageId: Int, onSuccess: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            retry(times = 3, delayMillis = 1000) {
+                val result = markAsReadUseCase(chatId, messageId, token.toString())
+                if (result == "success") {
+                    messageStatusDao.markMessagesAsRead(
+                        updatedAt = getCurrentTimestamp.nowIsoUtc(),
+                        messageId = messageId,
+                        userId = id
+                    )
+                    onSuccess(true)
+                } else {
+                    onSuccess(false)
+                }
+            }
+        }
     }
 }

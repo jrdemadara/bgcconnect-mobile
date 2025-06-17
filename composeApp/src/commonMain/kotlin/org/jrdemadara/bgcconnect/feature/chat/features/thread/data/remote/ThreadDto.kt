@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 // Remote
 @Serializable
 data class SendChatRequest(
+    val localId: Int,
     val chatId: Int,
     val content: String,
     val messageType: String,
@@ -13,9 +14,17 @@ data class SendChatRequest(
 )
 
 @Serializable
+data class MarkMessagesReadRequest(
+    @SerialName("chat_id") val chatId: Int,
+    @SerialName("message_id") val messageId: Int
+)
+
+@Serializable
 data class MessageReceiveDto(
     val message: MessageDto,
-    val status: MessageStatusDto
+    val status: MessageStatusDto,
+    @SerialName("local_id")
+    val localId: Int
 )
 
 @Serializable
@@ -31,7 +40,7 @@ data class MessageDto(
     @SerialName("reply_to")
     val replyTo: Int? = null,
     @SerialName("created_at")
-    val createAt: String,
+    val createdAt: String,
     @SerialName("updated_at")
     val updatedAt: String,
 )
@@ -46,6 +55,12 @@ data class MessageStatusDto(
     val status: String,
     @SerialName("updated_at")
     val updatedAt: String
+)
+
+@Serializable
+data class MessageRead(
+    @SerialName("reader_id") val readerId: Long,
+    @SerialName("message_ids") val messageIds: List<Long>
 )
 
 // Local

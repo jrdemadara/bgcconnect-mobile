@@ -1,4 +1,4 @@
-package org.jrdemadara.bgcconnect.core
+package org.jrdemadara.bgcconnect.core.pusher
 
 import android.util.Log
 import com.pusher.client.Pusher
@@ -9,22 +9,20 @@ import com.pusher.client.channel.PrivateChannelEventListener
 import com.pusher.client.channel.PusherEvent
 import com.pusher.client.channel.User
 import com.pusher.client.connection.ConnectionEventListener
+import com.pusher.client.connection.ConnectionState
 import com.pusher.client.connection.ConnectionStateChange
 import com.pusher.client.util.HttpChannelAuthorizer
 import com.russhwolf.settings.Settings
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.lang.Exception
 
 actual class PusherManager actual constructor() {
     private val settings: Settings = Settings()
-    private val token = settings.getString("auth_token", defaultValue = "")
-    private val userId = settings.getInt("id", -1).takeIf { it != -1 }?.toString()
+    private val authToken = settings.getString("auth_token", defaultValue = "")
+    private val userId = settings.getInt("id", -1).takeIf { it != -1 }?.toLong()
 
     private var pusher: Pusher? = null
 
@@ -49,7 +47,12 @@ actual class PusherManager actual constructor() {
     private val userLeftMap = mutableMapOf<Long, MutableSharedFlow<Long>>()
 
     private val _chatDelivered = MutableSharedFlow<String>()
-    private val _chatSeen = MutableSharedFlow<String>()
+
+    private val _chatRead = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
+
 
     private val _typing = MutableSharedFlow<String>(
         replay = 0,
@@ -76,8 +79,8 @@ actual class PusherManager actual constructor() {
     actual val chatDelivered: Flow<String>
         get() = _chatDelivered.asSharedFlow()
 
-    actual val chatSeen: Flow<String>
-        get() = _chatSeen.asSharedFlow()
+    actual val chatRead: Flow<String>
+        get() = _chatRead.asSharedFlow()
 
     actual val typing: Flow<String>
         get() = _typing.asSharedFlow()
@@ -86,14 +89,16 @@ actual class PusherManager actual constructor() {
         get() = _userStatus.asSharedFlow()
 
     init {
-        userId?.let {
-            connectToUserChannel()
-        } ?: Log.e("Pusher", "❌ No userId found in Settings.")
+        if (userId?.toInt() != -1 && authToken.isNotEmpty()){
+            authenticate()
+        }else{
+            Log.e("Pusher", "❌ Missing userId or authToken.")
+        }
     }
 
-     private fun connectToUserChannel() {
+    actual fun authenticate() {
         val authorizer = HttpChannelAuthorizer("http://192.168.1.6:8000/broadcasting/auth").apply {
-            setHeaders(mapOf("Authorization" to "Bearer $token"))
+            setHeaders(mapOf("Authorization" to "Bearer $authToken"))
         }
 
         val options = PusherOptions().apply {
@@ -107,6 +112,9 @@ actual class PusherManager actual constructor() {
         pusher?.connect(object : ConnectionEventListener {
             override fun onConnectionStateChange(change: ConnectionStateChange) {
                 Log.d("Pusher", "📡 Connected: ${change.currentState}")
+                if (change.currentState == ConnectionState.CONNECTED) {
+                    userId?.let { subscribeToUserChannel(it) }
+                }
             }
 
             override fun onError(message: String?, code: String?, e: Exception?) {
@@ -117,7 +125,7 @@ actual class PusherManager actual constructor() {
 
     actual fun subscribeToUserChannel(userId: Long){
         val channelName = "private-user.$userId"
-        pusher?.subscribePrivate(channelName, object : PrivateChannelEventListener {
+        val channel = pusher?.subscribePrivate(channelName, object : PrivateChannelEventListener {
             override fun onEvent(event: PusherEvent?) {
                 Log.d("Pusher", "✅Chat Event to: $event")
             }
@@ -132,8 +140,11 @@ actual class PusherManager actual constructor() {
         })
 
         // Bind all relevant user events
-        bindUserEvent("message-request", _messageRequests)
-        bindUserEvent("chat-created", _chatCreated)
+        channel?.let {
+            bindUserEvent("message-request", it, _messageRequests)
+            bindUserEvent("chat-created", it, _chatCreated)
+        }
+
     }
 
     actual fun subscribeToChatChannel(chatId: Long) {
@@ -156,13 +167,17 @@ actual class PusherManager actual constructor() {
         channel?.let {
             bindChatEvent("chat-received", it, _chatReceived)
             bindChatEvent("chat-delivered", it, _chatDelivered)
-            bindChatEvent("chat-seen", it, _chatSeen)
+            bindChatEvent("chat-read", it, _chatRead)
             bindChatEvent("client-typing", it, _typing)
         }
     }
 
-    private fun bindUserEvent(eventName: String, flow: MutableSharedFlow<String>) {
-        privateChannel?.bind(eventName, object : PrivateChannelEventListener {
+    private fun bindUserEvent(
+        eventName: String,
+        channel: PrivateChannel,
+        flow: MutableSharedFlow<String>
+    ) {
+        channel.bind(eventName, object : PrivateChannelEventListener {
             override fun onEvent(event: PusherEvent?) {
                 Log.d("Pusher", "📥 [$eventName] raw data: ${event?.data}")
                 event?.data?.let {
@@ -183,7 +198,8 @@ actual class PusherManager actual constructor() {
 
     actual fun subscribeToPresenceChannel(chatId: Long) {
         val channelName = "presence-chat-presence.$chatId"
-        val presenceChannel = pusher?.subscribePresence(channelName, object : PresenceChannelEventListener {
+        val presenceChannel = pusher?.subscribePresence(channelName, object :
+            PresenceChannelEventListener {
 
             override fun userSubscribed(channelName: String?, user: User?) {
                 user?.id?.toLongOrNull()?.let {

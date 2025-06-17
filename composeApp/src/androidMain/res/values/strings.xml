@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">BGC Connect</string>
+            <!-- ... other strings ... -->
+
+            <!-- Define your default notification channel ID here -->
+    <string name="default_notification_channel_id">fcm_default_channel</string>
+
+    <!-- <string name="app_name">Your App Name</string> -->
 </resources>

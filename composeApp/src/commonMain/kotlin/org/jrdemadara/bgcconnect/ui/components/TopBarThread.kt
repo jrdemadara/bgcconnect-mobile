@@ -48,50 +48,55 @@ fun TopBarThread(
     lastSeen: String) {
     TopAppBar(
         title = {
-            Row {
-                AsyncImage(
-                    model = avatar,
-                    contentDescription = "User Photo",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                Column(
-                    verticalArrangement = Arrangement.spacedBy((-7).dp)) {
-                    Text(
-                        text = name.capitalizeWords(),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurface
+                Row {
+                    AsyncImage(
+                        model = avatar,
+                        contentDescription = "User Photo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
                     )
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(12.dp)
-                                .background(Color(0xFF4CAF50), CircleShape) // green color
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy((-7).dp)) {
                         Text(
-                            text = when {
-                                isOnline -> "Online"
-                                lastSeen.isNotEmpty() -> "last seen ${formatTimestamp(lastSeen)}"
-                                else -> "Inactive"
-                            },
-                            fontSize = 14.sp,
-                            color = when {
-                                isOnline -> Color(0xFF4CAF50) // Green
-                                lastSeen.isNotEmpty() -> Color.Gray
-                                else -> Color(0xFFF44336) // Red
-                            }
+                            text = name.capitalizeWords(),
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
-                    }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isOnline){
+                                Box(
+                                    modifier = Modifier
+                                        .size(12.dp)
+                                        .background(
+                                            color = Color(0xFF4CAF50),
+                                            CircleShape) // green color
+                                )
+                            }
 
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = when {
+                                    isOnline -> "Online"
+                                    lastSeen.isNotEmpty() -> "last seen ${formatTimestamp(lastSeen)}"
+                                    else -> "Inactive"
+                                },
+                                fontSize = 14.sp,
+                                color = when {
+                                    isOnline -> Color(0xFF4CAF50) // Green
+                                    lastSeen.isNotEmpty() -> Color.Gray
+                                    else -> Color(0xFFF44336) // Red
+                                }
+                            )
+                        }
+
+                    }
                 }
-            }
 
         },
         navigationIcon = {

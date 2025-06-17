@@ -11,8 +11,6 @@ class MainApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-            //PushNotifications.stop()
-
         initKoin {
             androidContext(this@MainApplication)
             androidLogger()

@@ -1,8 +1,9 @@
-package org.jrdemadara.bgcconnect.core
+package org.jrdemadara.bgcconnect.core.pusher
 
 import kotlinx.coroutines.flow.Flow
 
 expect class PusherManager() {
+    fun authenticate()
     fun disconnect()
 
     fun subscribeToUserChannel(userId: Long)
@@ -18,7 +19,7 @@ expect class PusherManager() {
     val chatCreated: Flow<String>
     val chatReceived: Flow<String>
     val chatDelivered: Flow<String>
-    val chatSeen: Flow<String>
+    val chatRead: Flow<String>
     val typing: Flow<String>
     val userStatus: Flow<String>
 }

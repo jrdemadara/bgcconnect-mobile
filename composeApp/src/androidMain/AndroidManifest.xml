@@ -12,13 +12,26 @@
         android:name=".MainApplication"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
+        <!-- Firebase Messaging Service -->
+        <service
+            android:name=".core.firebase.FirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- Set custom default icon. This is used when no icon is set for incoming notification messages. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
-            android:resource="@drawable/ic_notification" />
-
+            android:resource="@drawable/ic_notification" /> <!-- Replace with your notification icon -->
+        <!-- Set color used with incoming notification messages. -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
-            android:resource="@color/primary" /> <!-- change to your color -->
+            android:resource="@color/primary" /> <!-- Replace with your desired color -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id"/>
 
 
         <activity

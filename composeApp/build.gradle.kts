@@ -9,7 +9,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinxSerialization)
     alias(libs.plugins.sqlDelight)
-    //id("com.google.gms.google-services")
+    id("com.google.gms.google-services")
 }
 
 kotlin {
@@ -38,6 +38,15 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android)
+
+            // Import the Firebase BoM (Bill of Materials)
+            implementation(platform("com.google.firebase:firebase-bom:32.8.0")) // Use latest
+
+            // Add the dependency for Firebase Cloud Messaging
+            implementation("com.google.firebase:firebase-messaging-ktx")
+           // implementation("com.google.firebase:firebase-inappmessaging-display")
+            // You might also want Firebase Analytics (recommended)
+            implementation("com.google.firebase:firebase-analytics-ktx")
 
 //            implementation(libs.firebase.messaging)
 //            implementation(libs.push.notification)
@@ -84,11 +93,11 @@ kotlin {
 
             implementation(libs.multiplatform.settings)
             implementation(libs.multiplatform.settings.no.arg)
+            implementation(libs.multiplatform.settings.coroutines)
 
             implementation(libs.pusher)
 
             implementation(libs.sqldelight.coroutines.extensions)
-
 
         }
 

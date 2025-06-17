@@ -20,4 +20,12 @@ class MessageStatusDao(private val queries: MessageStatusQueries) {
             updatedAt = status.updatedAt
         )
     }
+
+    fun markMessagesAsRead(updatedAt: String, messageId: Int, userId: Int) {
+            queries.updateStatus(
+                status = "read",
+                updatedAt = updatedAt,
+                messageId = messageId.toLong(),
+                userId = userId.toLong())
+    }
 }

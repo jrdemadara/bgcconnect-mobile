@@ -7,3 +7,9 @@ interface Platform {
 }
 
 expect fun getPlatform(scope: Scope): Platform
+
+expect object getCurrentTimestamp {
+    fun nowIsoUtc(): String
+}
+
+expect fun generateUUID(): String

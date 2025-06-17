@@ -1,4 +1,4 @@
-package org.jrdemadara.bgcconnect.core
+package org.jrdemadara.bgcconnect.core.pusher
 
 import kotlinx.coroutines.flow.Flow
 

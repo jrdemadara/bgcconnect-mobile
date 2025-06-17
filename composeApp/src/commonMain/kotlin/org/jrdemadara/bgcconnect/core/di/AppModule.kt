@@ -1,13 +1,17 @@
 package org.jrdemadara.bgcconnect.core.di
 
+import com.russhwolf.settings.ObservableSettings
 import com.russhwolf.settings.Settings
 import org.jrdemadara.AppDatabase
 import org.jrdemadara.bgcconnect.AppViewModel
-import org.jrdemadara.bgcconnect.core.PusherManager
-import org.jrdemadara.bgcconnect.core.RealtimeEventManager
+import org.jrdemadara.bgcconnect.core.firebase.FirebaseEventManager
+import org.jrdemadara.bgcconnect.core.firebase.FirebaseManager
+import org.jrdemadara.bgcconnect.core.pusher.PusherManager
+import org.jrdemadara.bgcconnect.core.pusher.RealtimeEventManager
 import org.jrdemadara.bgcconnect.core.local.DatabaseDriverFactory
 import org.jrdemadara.bgcconnect.core.local.DatabaseHelper
 import org.jrdemadara.bgcconnect.core.local.SessionManager
+import org.jrdemadara.bgcconnect.data.SyncApi
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatParticipantDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageDao
@@ -34,6 +38,7 @@ import org.jrdemadara.bgcconnect.feature.chat.presentation.ChatViewModel
 import org.jrdemadara.bgcconnect.feature.login.data.LoginApi
 import org.jrdemadara.bgcconnect.feature.login.data.LoginRepositoryImpl
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.ThreadRepositoryImpl
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.MarkAsReadUseCase
 import org.jrdemadara.bgcconnect.feature.login.domain.LoginRepository
 import org.jrdemadara.bgcconnect.feature.login.domain.LoginUseCase
 import org.jrdemadara.bgcconnect.feature.login.presentation.LoginViewModel
@@ -49,7 +54,10 @@ val appModule = module {
 
     // App-wide dependencies
     single { Settings() }
+    single<ObservableSettings> { get<Settings>() as ObservableSettings }
+
     single { SessionManager(get()) }
+    single { FirebaseEventManager() }
 
     // SQLDelight database setup
     //single { DatabaseDriverFactory(get()) } // ✅ Only required on Android. Safe here.
@@ -71,7 +79,7 @@ val appModule = module {
     single { LoginApi(get()) }
     singleOf(::LoginRepositoryImpl) { bind<LoginRepository>() }
     single { LoginUseCase(get()) }
-    viewModel { LoginViewModel(get(), get()) }
+    viewModel { LoginViewModel(get(), get(), get()) }
 
     // Search
     single { SearchMemberApi(get()) }
@@ -92,9 +100,11 @@ val appModule = module {
     single { ThreadApi(get()) }
     singleOf(::ThreadRepositoryImpl) { bind<ThreadRepository>() }
     single { SendMessageUseCase(get()) }
-    viewModel { ThreadViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    single { MarkAsReadUseCase(get()) }
+    viewModel { ThreadViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
 
 
     // App-level ViewModel
-    viewModel { AppViewModel(get()) }
+    single { SyncApi(get()) }
+    viewModel { AppViewModel(get(), get(), get(), get()) }
 }

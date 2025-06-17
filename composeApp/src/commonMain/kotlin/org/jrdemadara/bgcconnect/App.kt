@@ -14,7 +14,6 @@ fun App() {
     KoinContext {
         AppTheme {
             val appViewModel: AppViewModel = koinViewModel()
-
             AppNavHost()
         }
     }

@@ -1,13 +1,10 @@
-package org.jrdemadara.bgcconnect.core
+package org.jrdemadara.bgcconnect.core.pusher
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
 import org.jrdemadara.Chat
 import org.jrdemadara.ChatParticipant
 import org.jrdemadara.Message
@@ -15,21 +12,20 @@ import org.jrdemadara.MessageRequest
 import org.jrdemadara.MessageStatus
 import org.jrdemadara.User
 import org.jrdemadara.bgcconnect.core.local.SessionManager
-import org.jrdemadara.bgcconnect.feature.chat.data.remote.ChatCreatedDto
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatParticipantDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageStatusDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.UserDao
+import org.jrdemadara.bgcconnect.feature.chat.data.remote.ChatCreatedDto
 import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.IncomingRequest
 import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.MessageRequestDao
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageDto
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageRead
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageReceiveDto
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageStatusDto
 
 class RealtimeEventManager(
     private val pusherManager: PusherManager,
-    sessionManager: SessionManager,
+    private val sessionManager: SessionManager,
     private val messageRequestDao: MessageRequestDao,
     private val userDao: UserDao,
     private val chatDao: ChatDao,
@@ -40,8 +36,9 @@ class RealtimeEventManager(
     private val id = sessionManager.getUserId()
     private val now = Clock.System.now().toString()
     private val chatIds = chatDao.getAllChatIds()
-    suspend fun start() {
-        pusherManager.subscribeToUserChannel(id.toLong())
+
+
+    fun start() {
         chatIds.forEach { chatId ->
             pusherManager.subscribeToChatChannel(chatId)
             pusherManager.subscribeToPresenceChannel(chatId)
@@ -51,7 +48,19 @@ class RealtimeEventManager(
         observeMessageRequests()
         observeChatCreated()
         observeChatReceived()
+        observeChatRead()
+       // observeSubscribeUser()
         // Add more observers here if needed
+    }
+
+    private fun observeSubscribeUser() {
+        println("🧐 Observing User Auth Token")
+        CoroutineScope(Dispatchers.Default).launch {
+            sessionManager.observeUserId().collect { userId ->
+                println("User ID changed: $userId")
+                pusherManager.subscribeToUserChannel(userId.toLong())
+            }
+        }
     }
 
     private fun observeMessageRequests() {
@@ -123,6 +132,9 @@ class RealtimeEventManager(
                         updatedAt = now,
                     )
                     chatDao.insertChat(chat)
+                    pusherManager.subscribeToChatChannel(dto.chat.id)
+                    pusherManager.subscribeToPresenceChannel(dto.chat.id)
+                    observePresence(dto.chat.id)
                   println("📥 Chat Created: ${dto.chat.id}")
                 } catch (e: Exception) {
                     println("❌ Failed to parse MessageRequest: ${e.message}")
@@ -137,19 +149,32 @@ class RealtimeEventManager(
             try {
                 pusherManager.chatReceived.collect { rawJson ->
                     val dto = Json.decodeFromString<MessageReceiveDto>(rawJson)
-                    println("📥 Message Received")
                     val message = Message(
-                        id = dto.message.id.toLong(),
+                        id = 0,
+                        remoteId = dto.message.id.toLong(),
                         senderId = dto.message.senderId,
                         chatId = dto.message.chatId,
                         content = dto.message.content,
                         messageType = dto.message.messageType,
                         replyTo = dto.message.replyTo?.toLong(),
-                        createdAt = dto.message.createAt,
+                        sendStatus = "received",
+                        createdAt = dto.message.createdAt,
                         updatedAt = dto.message.updatedAt
                     )
 
-                    messageDao.insertMessage(message)
+                    val isExists = messageDao.isIdExists(dto.localId.toLong())
+
+                    if (isExists){
+                        messageDao.updateMessageSendStatusSent(
+                            messageId = dto.localId.toLong(),
+                            remoteId = dto.message.id.toLong(),
+                            status = "sent",
+                            createdAt = dto.message.createdAt,
+                            updatedAt = dto.message.updatedAt
+                        )
+                    }else {
+                        messageDao.insertMessage(message)
+                    }
 
                     val messageStatus = MessageStatus(
                         id = dto.status.id,
@@ -160,6 +185,7 @@ class RealtimeEventManager(
                     )
 
                     messageStatusDao.insertStatus(messageStatus)
+
                     println("📥 Message Saved: ${dto.message.id}")
                     println("📥 Message Status Saved: ${dto.status.id}")
                 }
@@ -181,25 +207,31 @@ class RealtimeEventManager(
         CoroutineScope(Dispatchers.Default).launch {
             pusherManager.getUserLeftFlow(chatId).collect { userId ->
                 userDao.updateOnlineStatus(userId, false)
-                userDao.updateLastSeen(userId, Clock.System.now().toString())
+                userDao.updateLastSeen(userId, now)
             }
         }
     }
 
-//    private suspend fun observePresence(chatId: Long) {
-//        println("🧐 Observing Chat Received Event")
-//
-//        pusherManager.userJoined.collect { userJson ->
-//            val json = Json.parseToJsonElement(userJson).jsonObject
-//            val userId = json["id"]?.jsonPrimitive?.longOrNull ?: return@collect
-//            userDao.updateOnlineStatus(userId, true)
-//        }
-//
-//        pusherManager.userLeft.collect { userJson ->
-//            val json = Json.parseToJsonElement(userJson).jsonObject
-//            val userId = json["id"]?.jsonPrimitive?.longOrNull ?: return@collect
-//            userDao.updateOnlineStatus(userId, false)
-//            userDao.updateLastSeen(userId, Clock.System.now().toString())
-//        }
-//    }
+    private fun observeChatRead() {
+        println("🧐 Observing Chat Read Event")
+        CoroutineScope(Dispatchers.Default).launch {
+            pusherManager.chatRead.collect { rawJson ->
+                try {
+                    val data = Json.decodeFromString<MessageRead>(rawJson)
+                    println("✅ Message Read Event: $data")
+
+                    data.messageIds.forEach { messageId ->
+                        messageStatusDao.markMessagesAsRead(
+                            updatedAt = now,
+                            messageId = messageId.toInt(),
+                            userId = data.readerId.toInt()
+                        )
+                    }
+
+                } catch (e: Exception) {
+                    println("❌ Failed to parse MessageReadPayload: ${e.message}")
+                }
+            }
+        }
+    }
 }

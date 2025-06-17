@@ -1,16 +1,42 @@
 CREATE TABLE Message (
-    id INTEGER NOT NULL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    remoteId INTEGER,
     senderId INTEGER NOT NULL,
     chatId INTEGER NOT NULL,
     content TEXT NOT NULL,
     messageType TEXT NOT NULL DEFAULT 'text', -- text, image, video, file
     replyTo INTEGER,
+    sendStatus TEXT NOT NULL,
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL
 );
 
 selectMessagesByChat:
 SELECT * FROM Message WHERE chatId = ? ORDER BY createdAt DESC;
+
+selectMessagesWithStatus:
+SELECT
+    Message.id AS messageId,
+    Message.chatId,
+    Message.content,
+    Message.senderId,
+    Message.createdAt,
+    Message.replyTo,
+    Message.sendStatus,
+    MessageStatus.status
+FROM Message
+LEFT JOIN (
+    SELECT messageId, MAX(status) AS status
+    FROM MessageStatus
+    GROUP BY messageId
+) AS MessageStatus ON Message.id = MessageStatus.messageId
+WHERE Message.chatId = :chatId
+ORDER BY Message.createdAt DESC;
+
+getUnsentMessages:
+SELECT * FROM Message
+WHERE (sendStatus = 'sending' OR sendStatus = 'failed')
+  AND senderId = :userId;
 
 getLastMessageForChat:
 SELECT * FROM Message
@@ -19,8 +45,37 @@ ORDER BY createdAt DESC
 LIMIT 1;
 
 insertMessage:
-INSERT INTO Message(id, senderId, chatId, content, messageType, replyTo, createdAt, updatedAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO Message(remoteId, senderId, chatId, content, messageType, replyTo, sendStatus, createdAt, updatedAt)
+VALUES (?, ?,?, ?, ?, ?, ?,?, ?);
+
+updateMessage:
+UPDATE Message SET
+    senderId = ?,
+    chatId = ?,
+    content = ?,
+    messageType = ?,
+    replyTo = ?,
+    sendStatus = ?,
+    createdAt = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+updateMessageSent:
+UPDATE Message
+SET remoteId = :remoteId,
+    sendStatus = :status,
+    createdAt = :createdAt,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+updateMessageFailed:
+UPDATE Message
+SET sendStatus = :status,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+isIdExists:
+SELECT EXISTS(SELECT 1 FROM Message WHERE id = ?);
 
 deleteMessagesByChat:
 DELETE FROM Message WHERE chatId = ?;

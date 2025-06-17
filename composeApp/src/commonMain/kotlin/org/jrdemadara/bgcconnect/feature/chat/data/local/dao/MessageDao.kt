@@ -4,12 +4,19 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import org.jrdemadara.Chat
 import org.jrdemadara.Message
 import org.jrdemadara.MessageQueries
+import org.jrdemadara.SelectMessagesWithStatus
 
 class MessageDao(private val queries: MessageQueries) {
-    fun getMessagesByChat(chatId: Long): Flow<List<Message>> =
-        queries.selectMessagesByChat(chatId)
+    fun getMessagesByChat(chatId: Long): Flow<List<SelectMessagesWithStatus>> =
+        queries.selectMessagesWithStatus(chatId = chatId)
+            .asFlow()
+            .mapToList(Dispatchers.Default)
+
+    fun getUnsentMessages(userId: Long): Flow<List<Message>> =
+        queries.getUnsentMessages(userId)
             .asFlow()
             .mapToList(Dispatchers.Default)
 
@@ -17,16 +24,53 @@ class MessageDao(private val queries: MessageQueries) {
         return queries.getLastMessageForChat(chatId).executeAsOneOrNull()
     }
 
+    fun isIdExists(id: Long): Boolean {
+        return queries.isIdExists(id).executeAsOne()
+    }
+
     fun insertMessage(message: Message) {
         queries.insertMessage(
-            id = message.id,
+            remoteId = message.remoteId,
             senderId = message.senderId,
             chatId = message.chatId,
             content = message.content,
             messageType = message.messageType,
             replyTo = message.replyTo,
+            sendStatus = message.sendStatus,
             createdAt = message.createdAt,
             updatedAt = message.updatedAt
+        )
+    }
+
+    fun updateMessage(message: Message, id: Long) {
+        queries.updateMessage(
+            id = id,
+            senderId = message.senderId,
+            chatId = message.chatId,
+            content = message.content,
+            messageType = message.messageType,
+            replyTo = message.replyTo,
+            sendStatus = message.sendStatus,
+            createdAt = message.createdAt,
+            updatedAt = message.updatedAt
+        )
+    }
+
+    fun updateMessageSendStatusSent(messageId: Long, remoteId: Long, status: String, updatedAt: String, createdAt: String) {
+        queries.updateMessageSent(
+            remoteId = remoteId,
+            status = status,
+            createdAt =  createdAt,
+            updatedAt = updatedAt,
+            id = messageId
+        )
+    }
+
+    fun updateMessageSendStatusFailed(messageId: Long, status: String, updatedAt: String) {
+        queries.updateMessageFailed(
+            status = status,
+            updatedAt = updatedAt,
+            id = messageId
         )
     }
 }

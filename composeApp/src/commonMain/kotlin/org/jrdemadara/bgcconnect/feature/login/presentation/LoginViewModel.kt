@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.jrdemadara.bgcconnect.core.local.SessionManager
+import org.jrdemadara.bgcconnect.core.pusher.PusherManager
 import org.jrdemadara.bgcconnect.feature.login.domain.LoginUseCase
 import org.koin.compose.getKoin
 
@@ -21,7 +22,8 @@ sealed class LoginState {
 
 class LoginViewModel(
     private val loginUseCase: LoginUseCase,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val pusherManager: PusherManager,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
@@ -34,6 +36,8 @@ class LoginViewModel(
                 val result = loginUseCase(phone, password)
                 _state.value = LoginState.Success("Success!")
                 sessionManager.saveSession(result.accessToken, result.data)
+                pusherManager.authenticate()
+                println("✅ Login success: ${result.data.id.toLong()}")
             } catch (e: Exception) {
                 _state.value = LoginState.Error(e.message ?: "Unknown error")
             }
