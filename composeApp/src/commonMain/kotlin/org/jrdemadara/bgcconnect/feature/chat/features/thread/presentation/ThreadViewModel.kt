@@ -17,7 +17,8 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import org.jrdemadara.Message
-import org.jrdemadara.SelectMessagesWithStatus
+import org.jrdemadara.SelectMessagesByChat
+
 import org.jrdemadara.bgcconnect.core.pusher.PusherManager
 import org.jrdemadara.bgcconnect.core.local.SessionManager
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatDao
@@ -28,9 +29,7 @@ import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.TopBar
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.MarkAsReadUseCase
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.SendMessageUseCase
 import org.jrdemadara.bgcconnect.getCurrentTimestamp
-import org.jrdemadara.bgcconnect.util.dateNowIso
 import org.jrdemadara.bgcconnect.util.retry
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 sealed class SendChatState {
@@ -60,7 +59,7 @@ class ThreadViewModel(
         observeAndResendUnsentMessages()
     }
 
-     fun sendChat(chatId: Int, content: String, messageType: String, replyTo: Int) {
+     fun sendChat(chatId: Int, content: String, messageType: String, replyTo: Int?) {
          val message = Message(
              id = 0,
              remoteId = null,
@@ -68,7 +67,7 @@ class ThreadViewModel(
              chatId = chatId.toLong(),
              content = content,
              messageType = messageType,
-             replyTo = replyTo.toLong(),
+             replyTo = replyTo?.toLong(),
              sendStatus = "sending",
              createdAt = getCurrentTimestamp.nowIsoUtc(),
              updatedAt = getCurrentTimestamp.nowIsoUtc(),
@@ -88,7 +87,7 @@ class ThreadViewModel(
                     unsentMessages.forEach { message ->
                         try {
                             sendMessageUseCase(message.id.toInt(), message.chatId.toInt(), message.content, message.messageType,
-                                message.replyTo?.toInt() ?: 0, message.id.toInt(), token.toString())
+                                message.replyTo?.toInt() ?: null, message.id.toInt(), token.toString())
                         } catch (e: Exception) {
                             messageDao.updateMessageSendStatusFailed(
                                 messageId = message.id,
@@ -127,8 +126,8 @@ class ThreadViewModel(
         }
     }
 
-    private val _messages = MutableStateFlow<List<SelectMessagesWithStatus>>(emptyList())
-    val messages: StateFlow<List<SelectMessagesWithStatus>> = _messages
+    private val _messages = MutableStateFlow<List<SelectMessagesByChat>>(emptyList())
+    val messages: StateFlow<List<SelectMessagesByChat>> = _messages
 
     fun loadMessages(chatId: Long) {
         viewModelScope.launch {

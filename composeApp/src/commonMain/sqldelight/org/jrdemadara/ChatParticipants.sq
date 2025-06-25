@@ -12,8 +12,8 @@ selectParticipantsByChatId:
 SELECT * FROM ChatParticipant WHERE chatId = ?;
 
 insertParticipant:
-INSERT INTO ChatParticipant(chatId, userId, role, joinedAt, createdAt, updatedAt)
-VALUES ( ?, ?, ?, ?, ?, ?);
+INSERT OR IGNORE INTO ChatParticipant(chatId, userId, role, joinedAt, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?);
 
 deleteParticipantsByChat:
 DELETE FROM ChatParticipant WHERE chatId = ?;

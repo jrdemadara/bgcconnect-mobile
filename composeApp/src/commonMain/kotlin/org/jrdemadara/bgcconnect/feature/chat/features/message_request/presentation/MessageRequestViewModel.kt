@@ -78,7 +78,6 @@ class MessageRequestViewModel(
             try {
                 val result = acceptMessageRequestUseCase(id, token.toString())
                 _acceptState.value = AcceptMessageRequestState.Success(result.toString())
-               messageRequestDao.updateStatus(id.toLong(), "accepted")
             } catch (e: Exception) {
                 _acceptState.value = AcceptMessageRequestState.Error(e.message ?: "Unknown error")  // Handle any errors
             }
@@ -91,7 +90,7 @@ class MessageRequestViewModel(
             try {
                 val result = declineMessageRequestUseCase(id, token.toString())
                 _declineState.value = DeclineMessageRequestState.Success(result.toString())
-                messageRequestDao.updateStatus(id.toLong(), "declined")
+                messageRequestDao.updateStatus(id.toLong(), status = "declined")
             } catch (e: Exception) {
                 _declineState.value = DeclineMessageRequestState.Error(e.message ?: "Unknown error")  // Handle any errors
             }

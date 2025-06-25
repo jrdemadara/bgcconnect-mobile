@@ -13,8 +13,8 @@ selectStatusForUser:
 SELECT * FROM MessageStatus WHERE userId = ? AND status = ?;
 
 insertStatus:
-INSERT INTO MessageStatus(id, messageId, userId, status, updatedAt)
-VALUES (?, ?, ?,?, ?);
+INSERT OR IGNORE INTO MessageStatus(id, messageId, userId, status, updatedAt)
+VALUES (?, ?, ?, ?, ?);
 
 updateStatus:
 UPDATE MessageStatus

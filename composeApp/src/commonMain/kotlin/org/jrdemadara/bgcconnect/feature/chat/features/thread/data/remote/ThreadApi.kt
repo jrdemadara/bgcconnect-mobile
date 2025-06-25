@@ -16,7 +16,7 @@ import kotlinx.serialization.json.put
 
 class ThreadApi(private val client: HttpClient) {
 
-    suspend fun sendMessage(localId: Int, chatId: Int, content: String, messageType: String, replyTo: Int, token: String): String {
+    suspend fun sendMessage(localId: Int, chatId: Int, content: String, messageType: String, replyTo: Int?, token: String): String {
         val response = client.post("/api/chat-send") {
             header(HttpHeaders.Authorization, "Bearer $token")
             setBody(SendChatRequest(localId ,chatId, content, messageType, replyTo))

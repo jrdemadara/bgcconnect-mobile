@@ -14,8 +14,8 @@ selectAllChatIds:
 SELECT id FROM Chat;
 
 insertChat:
-INSERT INTO Chat(id, userId, chatType, name, createdAt, updatedAt)
-VALUES (?, ?,?, ?, ?, ?);
+INSERT OR IGNORE INTO Chat(id, userId, chatType, name, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?);
 
 deleteChatById:
 DELETE FROM Chat WHERE id = ?;

@@ -48,7 +48,7 @@ fun TopBarThread(
     lastSeen: String) {
     TopAppBar(
         title = {
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(
                         model = avatar,
                         contentDescription = "User Photo",
@@ -57,7 +57,7 @@ fun TopBarThread(
                             .size(48.dp)
                             .clip(CircleShape)
                     )
-                    Spacer(modifier = Modifier.width(5.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Column(
                         verticalArrangement = Arrangement.spacedBy((-7).dp)) {
                         Text(
@@ -124,7 +124,7 @@ fun TopBarThread(
                 Icon(
                     imageVector = Lucide.Phone,
                     contentDescription = "Voice Call",
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -134,7 +134,7 @@ fun TopBarThread(
                 Icon(
                     imageVector = Lucide.Video,
                     contentDescription = "Video Call",
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(24.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }

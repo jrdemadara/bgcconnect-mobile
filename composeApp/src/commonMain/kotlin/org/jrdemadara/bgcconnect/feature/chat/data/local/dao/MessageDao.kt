@@ -2,16 +2,20 @@ package org.jrdemadara.bgcconnect.feature.chat.data.local.dao
 
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
+import app.cash.sqldelight.coroutines.mapToOneOrNull
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import org.jrdemadara.Chat
+import org.jrdemadara.GetLastMessageForChat
 import org.jrdemadara.Message
 import org.jrdemadara.MessageQueries
-import org.jrdemadara.SelectMessagesWithStatus
+import org.jrdemadara.SelectMessagesByChat
+
 
 class MessageDao(private val queries: MessageQueries) {
-    fun getMessagesByChat(chatId: Long): Flow<List<SelectMessagesWithStatus>> =
-        queries.selectMessagesWithStatus(chatId = chatId)
+    fun getMessagesByChat(chatId: Long): Flow<List<SelectMessagesByChat>> =
+        queries.selectMessagesByChat(chatId = chatId)
             .asFlow()
             .mapToList(Dispatchers.Default)
 
@@ -20,9 +24,10 @@ class MessageDao(private val queries: MessageQueries) {
             .asFlow()
             .mapToList(Dispatchers.Default)
 
-    fun getLastMessageForChat(chatId: Long): Message? {
-        return queries.getLastMessageForChat(chatId).executeAsOneOrNull()
-    }
+    fun getLastMessageForChat(userId: Long, chatId: Long): Flow<GetLastMessageForChat?> =
+        queries.getLastMessageForChat(userId = userId, chatId = chatId)
+            .asFlow()
+            .mapToOneOrNull(context = Dispatchers.IO)
 
     fun isIdExists(id: Long): Boolean {
         return queries.isIdExists(id).executeAsOne()

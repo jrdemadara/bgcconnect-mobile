@@ -1,27 +1,36 @@
 package org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +39,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -40,29 +50,48 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.composables.icons.lucide.ArrowLeft
+import bgcconnect.composeapp.generated.resources.Res
+import bgcconnect.composeapp.generated.resources.one_heart
+import com.composables.icons.lucide.Camera
 import com.composables.icons.lucide.Check
 import com.composables.icons.lucide.CheckCheck
+import com.composables.icons.lucide.ChevronRight
 import com.composables.icons.lucide.CircleAlert
 import com.composables.icons.lucide.Copy
+import com.composables.icons.lucide.Image
 import com.composables.icons.lucide.Lucide
+import com.composables.icons.lucide.Mic
 import com.composables.icons.lucide.Reply
-import com.composables.icons.lucide.Send
+import com.composables.icons.lucide.SendHorizontal
 import com.composables.icons.lucide.Trash
+import com.composables.icons.lucide.X
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 import org.jrdemadara.bgcconnect.ui.components.TopBarThread
 import org.jrdemadara.bgcconnect.ui.components.TypingIndicator
 import org.jrdemadara.bgcconnect.util.formatTimestamp
@@ -80,6 +109,11 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
     val listState = rememberLazyListState()
     val alreadyReadIds = remember { mutableStateListOf<Long>() }
 
+    var isReply by remember { mutableStateOf(false) }
+    var selectedMessage by remember { mutableStateOf(-1L) }
+    var selectedMessageRemoteId by remember { mutableStateOf(-1L) }
+    var selectedMessageContent by remember { mutableStateOf("") }
+
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
 
@@ -93,6 +127,8 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
 
     LaunchedEffect(visibleMessageIds) {
         println(visibleMessageIds)
+        delay(500)
+
         val unreadVisible = visibleMessageIds.filter { msgId ->
 
             val msg = messages.find { it.messageId == msgId }
@@ -136,7 +172,6 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
         },
         bottomBar = {
             MessageInputField(
-                chatId = chatId.toLong(),
                 message = messageInput.value,
                 onMessageChange = { messageInput.value = it },
                 onSend = {
@@ -146,71 +181,124 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
                                 chatId,
                                 messageInput.value,
                                 "text",
-                                0
+                                replyTo = if (selectedMessageRemoteId != -1L) selectedMessageRemoteId.toInt() else null
                             )
                             messageInput.value = ""
+                            isReply = false
+                            selectedMessage = -1L
+                            selectedMessageRemoteId = -1L
+                            selectedMessageContent = ""
                         }
 
                     }
                 },
                 onTyping = {
                     viewModel.sendTyping(chatId.toLong())
-                }
+                },
+                isReply = isReply,
+                onCancelReply = {
+                    isReply = false
+                    selectedMessage = -1L
+                    selectedMessageRemoteId = -1L
+                    selectedMessageContent = ""
+                },
+                selectedMessageContent = selectedMessageContent
             )
         }
     ) { paddingValues ->
+
+        val emojis = listOf("one-heart", "❤️", "😂", "😮", "😢")
 
         if (showBottomSheet) {
             ModalBottomSheet(
                 onDismissRequest = {
                     showBottomSheet = false
                 },
-                sheetState = sheetState
+                sheetState = sheetState,
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 24.dp, end = 24.dp, bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    emojis.forEach { emoji ->
+                        if (emoji == "one-heart"){
+                            Image(
+                                painterResource(Res.drawable.one_heart),
+                                contentDescription = "Logo",
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clickable {
+                                    println("Emoji react $emoji to: ${selectedMessage}")
+                                },
+                            )
+                        }else {
+                            Text(
+                                text = emoji,
+                                fontSize = 38.sp,
+                                modifier = Modifier
+                                    .clickable {
+                                        // handle emoji reaction
+                                        println("Emoji react $emoji to: ${selectedMessage}")
+                                    }
+                                    .padding(4.dp)
+                            )
+                        }
+
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, bottom = 22.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.clickable{
+                            println("Reply to $selectedMessage")
+                            isReply = true
+                            scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                if (!sheetState.isVisible) {
+                                    showBottomSheet = false
+                                }
+                            }
+                        }
                     ) {
                         Icon(
                             imageVector = Lucide.Reply,
                             contentDescription = "Reply",
-                            modifier = Modifier.size(28.dp),
+                            modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(text = "Reply")
                     }
                     Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
                             imageVector = Lucide.Copy,
-                            contentDescription = "Reply",
-                            modifier = Modifier.size(28.dp),
+                            contentDescription = "Copy",
+                            modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(text = "Copy")
                     }
                     Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
                             imageVector = Lucide.Trash,
-                            contentDescription = "Reply",
-                            modifier = Modifier.size(28.dp),
+                            contentDescription = "Trash",
+                            modifier = Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(text = "Delete")
                     }
-                }
-                Button(onClick = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion {
-                        if (!sheetState.isVisible) {
-                            showBottomSheet = false
-                        }
-                    }
-                }) {
-                    Text("Hide bottom sheet")
                 }
             }
         }
@@ -230,14 +318,6 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
             }
 
             items(messages) { message ->
-//                MessageBubble(
-//                    message = message.content,
-//                    isMine = message.senderId == viewModel.id.toLong(),
-//                    timestamp = formatTimestamp(message.createdAt),
-//                    status = message.status,
-//                    sendStatus = message.sendStatus
-//                )
-
                 val haptics = LocalHapticFeedback.current
                 Column(
                     modifier = Modifier
@@ -248,6 +328,10 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
                             onLongClick = {
                                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                 showBottomSheet = true
+                                selectedMessage = message.messageId
+                                selectedMessageRemoteId = message.remoteId!!
+                                selectedMessageContent = message.content
+                                println("Selected message: ${message.content}")
                             },
                             onLongClickLabel = "Context menu"
                         ),
@@ -277,11 +361,41 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
                                     )
                                     .padding(horizontal = 14.dp, vertical = 10.dp)
                             ) {
-                                Text(
-                                    text = message.content,
-                                    color = if ( message.senderId == viewModel.id.toLong()) Color.White else Color.Black,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+                                Column {
+                                    message.replyContent?.let {
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(bottom = 4.dp)
+                                                .background(
+                                                    color = if (message.senderId == viewModel.id.toLong())
+                                                        Color(0xFFF0F0F0).copy(alpha = 0.2f)
+                                                    else
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                                    shape = RoundedCornerShape(8.dp)
+                                                )
+                                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                                .wrapContentWidth()
+                                        ) {
+                                            Text(
+                                                text = it,
+                                                color = if (message.senderId == viewModel.id.toLong())
+                                                    Color.White
+                                                else
+                                                    Color.DarkGray,
+                                                style = MaterialTheme.typography.bodySmall.copy(fontStyle = FontStyle.Italic),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+
+                                    Text(
+                                        text = message.content,
+                                        color = if (message.senderId == viewModel.id.toLong())
+                                            Color.White else Color.Black,
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
                             }
                         }
                     }
@@ -321,146 +435,192 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
             }
         }
     }
-
-
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun MessageBubble(
-    message: String,
-    isMine: Boolean,
-    timestamp: String,
-    status: String? = null,
-    sendStatus: String
-) {
-    val haptics = LocalHapticFeedback.current
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .combinedClickable(
-                onClick = {},
-                onLongClick = {
-                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                },
-                onLongClickLabel = "Context menu"
-            ),
-        horizontalAlignment = if (isMine) Alignment.End else Alignment.Start
-    ) {
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = if (isMine) Arrangement.End else Arrangement.Start
-        ) {
-            BoxWithConstraints {
-                val maxBubbleWidth = maxWidth * 0.8f
-
-                Box(
-                    modifier = Modifier
-                        .widthIn(max = maxBubbleWidth)
-                        .wrapContentWidth()
-                        .background(
-                            color = if (isMine) MaterialTheme.colorScheme.primary else Color(0xFFF0F0F0),
-                            shape = RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomEnd = if (isMine) 0.dp else 16.dp,
-                                bottomStart = if (isMine) 16.dp else 0.dp
-                            )
-                        )
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Text(
-                        text = message,
-                        color = if (isMine) Color.White else Color.Black,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-        }
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.padding(top = 2.dp, end = 8.dp, start = 8.dp)
-        ) {
-            Text(
-                text = timestamp,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Gray
-            )
-
-            if (isMine) {
-                val (icon, tint) = when {
-                    sendStatus == "failed" -> Lucide.CircleAlert to Color.Red
-                    sendStatus == "sending" -> Lucide.Check to Color.Gray
-                    sendStatus == "sent" && status == "delivered" -> Lucide.CheckCheck to Color.Gray
-                    sendStatus == "sent" && status == "read" -> Lucide.CheckCheck to MaterialTheme.colorScheme.primary
-                    else -> null to Color.Transparent
-                }
-
-                icon?.let {
-                    Icon(
-                        imageVector = it,
-                        contentDescription = status,
-                        modifier = Modifier.size(16.dp),
-                        tint = tint
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun MessageInputField(
-    chatId: Long,
     message: String,
+    selectedMessageContent: String,
+    isReply: Boolean,
     onMessageChange: (String) -> Unit,
     onSend: () -> Unit,
-    onTyping: () -> Unit
+    onTyping: () -> Unit,
+    onCancelReply: () -> Unit
 ) {
     val debounceJob = remember { mutableStateOf<Job?>(null) }
-    Row(
+    val isReplyState = rememberUpdatedState(newValue = isReply)
+
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+
+    val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+    val interactionSource = remember { MutableInteractionSource() }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(start = 6.dp, end = 6.dp, top = 6.dp)
             .background(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(24.dp)
+                color = MaterialTheme.colorScheme.background,
+                shape = RoundedCornerShape(18.dp)
             )
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        TextField(
-            value = message,
-            onValueChange = {
-                onMessageChange(it)
+        if (isReplyState.value) {
+            Box(
+                modifier = Modifier.padding(horizontal = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = buildAnnotatedString {
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.SemiBold)) {
+                                append("Replying to: ")
+                            }
+                            withStyle(style = SpanStyle(fontStyle = FontStyle.Italic)) {
+                                append(selectedMessageContent)
+                            }
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                debounceJob.value?.cancel()
-                debounceJob.value = CoroutineScope(Dispatchers.Main).launch {
-                    delay(300) // 👈 300ms debounce
-                    onTyping()
+                    IconButton(
+                        onClick = onCancelReply,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Lucide.X,
+                            contentDescription = "Cancel Reply",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
-            },
-            placeholder = { Text("Type a message...") },
-            modifier = Modifier.weight(1f),
-//            colors = TextFieldDefaults.textFieldColors(
-//                containerColor = Color.Transparent,
-//                focusedIndicatorColor = Color.Transparent,
-//                unfocusedIndicatorColor = Color.Transparent
-//            ),
-            maxLines = 3
-        )
-        IconButton(onClick = onSend) {
-            Icon(
-                imageVector = Lucide.Send,
-                contentDescription = "Send",
-                modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            modifier = Modifier
+                .padding(start = 6.dp, end = 6.dp, bottom = 12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            AnimatedVisibility(
+                enter = fadeIn(animationSpec = tween(durationMillis = 50)),
+                exit = fadeOut(animationSpec = tween(durationMillis = 50)),
+                visible = !imeVisible)
+            {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.wrapContentWidth()
+                ) {
+                    IconButton(
+                        onClick = { /* TODO: Add camera action */ },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Lucide.Camera,
+                            contentDescription = "Camera Icon",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = { /* TODO: Add gallery action */ },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Lucide.Image,
+                            contentDescription = "Gallery Icon",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    IconButton(
+                        onClick = { /* TODO: Add mic action */ },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Lucide.Mic,
+                            contentDescription = "Mic Icon",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            }
+
+            if (imeVisible) {
+                IconButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                    }
+                ) {
+                    Icon(
+                        imageVector = Lucide.ChevronRight,
+                        contentDescription = "Collapse",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            TextField(
+                value = message,
+                onValueChange = {
+                    onMessageChange(it)
+                    debounceJob.value?.cancel()
+                    debounceJob.value = CoroutineScope(Dispatchers.Main).launch {
+                        delay(300)
+                        onTyping()
+                    }
+                },
+                placeholder = { Text("Message", fontSize = 16.sp) },
+                modifier = Modifier
+                    .height(52.dp)
+                    .weight(1f)
+                    .clip(RoundedCornerShape(24.dp))
+                    .focusRequester(focusRequester),
+                interactionSource = interactionSource,
+                shape = RoundedCornerShape(24.dp),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    disabledContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    cursorColor = MaterialTheme.colorScheme.primary
+                ),
+                maxLines = 4
             )
+
+            IconButton(onClick = onSend) {
+                Icon(
+                    imageVector = Lucide.SendHorizontal,
+                    contentDescription = "Send",
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }

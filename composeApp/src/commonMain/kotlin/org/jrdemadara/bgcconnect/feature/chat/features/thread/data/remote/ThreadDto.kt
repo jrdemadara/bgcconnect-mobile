@@ -10,7 +10,7 @@ data class SendChatRequest(
     val chatId: Int,
     val content: String,
     val messageType: String,
-    val replyTo: Int,
+    val replyTo: Int?,
 )
 
 @Serializable

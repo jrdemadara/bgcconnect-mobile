@@ -10,7 +10,9 @@ import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.Send
 @Serializable
 data class ChatCreatedDto(
     val chat: ChatDto,
-    val participants: List<ParticipantDto>
+    val participants: List<ParticipantDto>,
+    @SerialName("message_request_id")
+    val messageRequestId: Long
 )
 
 @Serializable

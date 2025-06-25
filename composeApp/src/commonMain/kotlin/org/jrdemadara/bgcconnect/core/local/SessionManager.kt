@@ -42,6 +42,10 @@ class SessionManager(private val observableSettings:  ObservableSettings) {
         observableSettings.putString(KEY_AVATAR, data.avatar ?: "")
     }
 
+    fun saveFCMToken(fcmToken: String) {
+        observableSettings.putString(KEY_FCM_TOKEN, fcmToken)
+    }
+
     fun clearSession() {
         observableSettings.clear()
     }

@@ -12,24 +12,26 @@ CREATE TABLE Message (
 );
 
 selectMessagesByChat:
-SELECT * FROM Message WHERE chatId = ? ORDER BY createdAt DESC;
-
-selectMessagesWithStatus:
 SELECT
     Message.id AS messageId,
+    Message.remoteId AS remoteId,
     Message.chatId,
     Message.content,
     Message.senderId,
     Message.createdAt,
-    Message.replyTo,
+    Message.replyTo, -- this refers to remoteId
     Message.sendStatus,
-    MessageStatus.status
+    MessageStatus.status,
+    ReplyMessage.content AS replyContent,
+    ReplyMessage.senderId AS replySenderId,
+    ReplyMessage.createdAt AS replyCreatedAt
 FROM Message
 LEFT JOIN (
     SELECT messageId, MAX(status) AS status
     FROM MessageStatus
     GROUP BY messageId
 ) AS MessageStatus ON Message.id = MessageStatus.messageId
+LEFT JOIN Message AS ReplyMessage ON Message.replyTo = ReplyMessage.remoteId
 WHERE Message.chatId = :chatId
 ORDER BY Message.createdAt DESC;
 
@@ -39,14 +41,29 @@ WHERE (sendStatus = 'sending' OR sendStatus = 'failed')
   AND senderId = :userId;
 
 getLastMessageForChat:
-SELECT * FROM Message
-WHERE chatId = ?
-ORDER BY createdAt DESC
+SELECT
+    Message.content,
+    Message.createdAt,
+    CASE
+        -- if sender is the current user, consider it read
+        WHEN Message.senderId = :userId THEN 1
+        -- else check message status
+        WHEN MessageStatus.status = 'read' THEN 1
+        ELSE 0
+    END AS isRead
+FROM Message
+LEFT JOIN (
+    SELECT messageId, status
+    FROM MessageStatus
+    WHERE userId = :userId
+) AS MessageStatus ON Message.id = MessageStatus.messageId
+WHERE Message.chatId = :chatId
+ORDER BY Message.createdAt DESC
 LIMIT 1;
 
 insertMessage:
-INSERT INTO Message(remoteId, senderId, chatId, content, messageType, replyTo, sendStatus, createdAt, updatedAt)
-VALUES (?, ?,?, ?, ?, ?, ?,?, ?);
+INSERT OR IGNORE INTO Message(remoteId, senderId, chatId, content, messageType, replyTo, sendStatus, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateMessage:
 UPDATE Message SET

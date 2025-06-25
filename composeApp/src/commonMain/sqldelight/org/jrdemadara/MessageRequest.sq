@@ -22,8 +22,8 @@ SELECT * FROM MessageRequest
 WHERE id = ?;
 
 insertMessageRequest:
-INSERT INTO  MessageRequest(id, senderId, firstname, lastname, avatar , recipientId, status, requestedAt)
-VALUES (?,?,?,?, ?, ?, ?, ?);
+INSERT OR IGNORE INTO MessageRequest(id, senderId, firstname, lastname, avatar, recipientId, status, requestedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 updateMessageRequestStatus:
 UPDATE MessageRequest

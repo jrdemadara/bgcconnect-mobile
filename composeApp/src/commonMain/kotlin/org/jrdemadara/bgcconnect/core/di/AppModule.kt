@@ -7,11 +7,10 @@ import org.jrdemadara.bgcconnect.AppViewModel
 import org.jrdemadara.bgcconnect.core.firebase.FirebaseEventManager
 import org.jrdemadara.bgcconnect.core.firebase.FirebaseManager
 import org.jrdemadara.bgcconnect.core.pusher.PusherManager
-import org.jrdemadara.bgcconnect.core.pusher.RealtimeEventManager
+import org.jrdemadara.bgcconnect.core.pusher.PusherEventManager
 import org.jrdemadara.bgcconnect.core.local.DatabaseDriverFactory
 import org.jrdemadara.bgcconnect.core.local.DatabaseHelper
 import org.jrdemadara.bgcconnect.core.local.SessionManager
-import org.jrdemadara.bgcconnect.data.SyncApi
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatParticipantDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageDao
@@ -57,7 +56,6 @@ val appModule = module {
     single<ObservableSettings> { get<Settings>() as ObservableSettings }
 
     single { SessionManager(get()) }
-    single { FirebaseEventManager() }
 
     // SQLDelight database setup
     //single { DatabaseDriverFactory(get()) } // ✅ Only required on Android. Safe here.
@@ -66,7 +64,10 @@ val appModule = module {
 
     // Real-time & messaging
     single { PusherManager() }
-    single { RealtimeEventManager(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { PusherEventManager(get(), get(), get(), get(), get(), get(), get(), get()) }
+
+    single { FirebaseManager() }
+    single { FirebaseEventManager(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     single { MessageRequestDao(get<AppDatabase>().messageRequestQueries) }
     single { UserDao(get<AppDatabase>().userQueries) }
@@ -105,6 +106,5 @@ val appModule = module {
 
 
     // App-level ViewModel
-    single { SyncApi(get()) }
-    viewModel { AppViewModel(get(), get(), get(), get()) }
+    viewModel { AppViewModel(get(), get()) }
 }

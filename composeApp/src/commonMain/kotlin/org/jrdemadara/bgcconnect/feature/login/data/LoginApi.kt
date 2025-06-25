@@ -11,10 +11,17 @@ import org.jrdemadara.bgcconnect.core.getBaseUrl
 
 class LoginApi(private val client: HttpClient) {
 
-    suspend fun loginUser(phone: String, password: String): LoginResponse {
+    suspend fun loginUser(phone: String, password: String, fcmToken: String): LoginResponse {
         val response = client.post("/api/login") {
-            contentType(ContentType.Application.Json)
-            setBody(LoginRequest(phone, password))
+            setBody(LoginRequest(
+                phone =  phone,
+                password =  password,
+                fcmToken =  fcmToken,
+                deviceId = phone + password,
+                deviceName = phone + password,
+                loginLat = 14.599512,
+                loginLon = 120.984222,
+            ))
         }
 
         return when (response.status) {

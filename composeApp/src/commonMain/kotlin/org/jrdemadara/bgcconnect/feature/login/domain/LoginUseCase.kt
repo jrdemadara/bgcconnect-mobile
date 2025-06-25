@@ -12,9 +12,9 @@ import org.jrdemadara.bgcconnect.feature.login.data.LoginResponse
 class LoginUseCase(
     private val repository: LoginRepository
 ) {
-    suspend operator fun invoke(phone: String, password: String): LoginResponse {
+    suspend operator fun invoke(phone: String, password: String, fcmToken: String): LoginResponse {
         return try {
-            repository.login(phone, password)
+            repository.login(phone, password, fcmToken)
         } catch (e: Exception) {
             throw Exception("Login failed: ${e.message}")
         }

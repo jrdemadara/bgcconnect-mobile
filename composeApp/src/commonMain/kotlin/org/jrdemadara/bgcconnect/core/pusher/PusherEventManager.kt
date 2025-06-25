@@ -23,7 +23,7 @@ import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.Mess
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageRead
 import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageReceiveDto
 
-class RealtimeEventManager(
+class PusherEventManager(
     private val pusherManager: PusherManager,
     private val sessionManager: SessionManager,
     private val messageRequestDao: MessageRequestDao,
@@ -96,7 +96,6 @@ class RealtimeEventManager(
             pusherManager.chatCreated.collect { rawJson ->
                 try {
                     val dto = Json.decodeFromString<ChatCreatedDto>(rawJson)
-
                     dto.participants.forEach { userDto ->
                         if (userDto.id.toInt() != id) {
                             val user = User(
@@ -132,6 +131,7 @@ class RealtimeEventManager(
                         updatedAt = now,
                     )
                     chatDao.insertChat(chat)
+                    messageRequestDao.updateStatus(dto.messageRequestId, status = "accepted")
                     pusherManager.subscribeToChatChannel(dto.chat.id)
                     pusherManager.subscribeToPresenceChannel(dto.chat.id)
                     observePresence(dto.chat.id)
@@ -196,7 +196,7 @@ class RealtimeEventManager(
         }
     }
 
-    private fun observePresence(chatId: Long) {
+     fun observePresence(chatId: Long) {
         println("🧐 Observing Presence Channel")
         CoroutineScope(Dispatchers.Default).launch {
             pusherManager.getUserJoinedFlow(chatId).collect { userId ->
@@ -227,7 +227,6 @@ class RealtimeEventManager(
                             userId = data.readerId.toInt()
                         )
                     }
-
                 } catch (e: Exception) {
                     println("❌ Failed to parse MessageReadPayload: ${e.message}")
                 }

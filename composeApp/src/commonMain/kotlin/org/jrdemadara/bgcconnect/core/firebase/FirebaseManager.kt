@@ -1,10 +1,18 @@
 package org.jrdemadara.bgcconnect.core.firebase
 
-import org.jrdemadara.bgcconnect.data.FirebaseMessageRequest
+import kotlinx.coroutines.flow.Flow
 
-interface FirebaseManager {
-    fun onMessageReceived(message: FirebaseMessageRequest)
+expect class FirebaseManager(){
+    fun init()
+    val tokenFlow: Flow<String>
+    val messageFlow: Flow<FirebaseMessageData>
 
     fun subscribeToTopic(topic: String)
     fun unsubscribeFromTopic(topic: String)
 }
+
+data class FirebaseMessageData(
+    val title: String?,
+    val body: String?,
+    val data: Map<String, String>
+)

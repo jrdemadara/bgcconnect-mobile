@@ -7,6 +7,11 @@ import kotlinx.serialization.Serializable
 data class LoginRequest(
     val phone: String,
     val password: String,
+    val fcmToken: String,
+    val deviceId: String,
+    val deviceName: String,
+    val loginLat: Double,
+    val loginLon: Double
 )
 
 @Serializable

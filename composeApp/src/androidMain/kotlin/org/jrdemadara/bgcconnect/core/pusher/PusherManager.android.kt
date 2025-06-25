@@ -23,10 +23,8 @@ actual class PusherManager actual constructor() {
     private val settings: Settings = Settings()
     private val authToken = settings.getString("auth_token", defaultValue = "")
     private val userId = settings.getInt("id", -1).takeIf { it != -1 }?.toLong()
-
+    private val subscribedChannels = mutableSetOf<String>()
     private var pusher: Pusher? = null
-
-    private var privateChannel: PrivateChannel? = null
 
     private val _messageRequests = MutableSharedFlow<String>(
         replay = 0,
@@ -125,6 +123,11 @@ actual class PusherManager actual constructor() {
 
     actual fun subscribeToUserChannel(userId: Long){
         val channelName = "private-user.$userId"
+
+        if (subscribedChannels.contains(channelName)) {
+            Log.w("Pusher", "⚠️ Already subscribed to $channelName")
+            return
+        }
         val channel = pusher?.subscribePrivate(channelName, object : PrivateChannelEventListener {
             override fun onEvent(event: PusherEvent?) {
                 Log.d("Pusher", "✅Chat Event to: $event")
@@ -139,6 +142,7 @@ actual class PusherManager actual constructor() {
             }
         })
 
+        subscribedChannels.add(channelName)
         // Bind all relevant user events
         channel?.let {
             bindUserEvent("message-request", it, _messageRequests)
@@ -149,6 +153,10 @@ actual class PusherManager actual constructor() {
 
     actual fun subscribeToChatChannel(chatId: Long) {
         val channelName = "private-chat.$chatId"
+        if (subscribedChannels.contains(channelName)) {
+            Log.w("Pusher", "⚠️ Already subscribed to $channelName")
+            return
+        }
         val channel = pusher?.subscribePrivate(channelName, object : PrivateChannelEventListener {
             override fun onEvent(event: PusherEvent?) {
                 Log.d("Pusher", "📩 Generic Event from $channelName: ${event?.data}")
@@ -162,6 +170,8 @@ actual class PusherManager actual constructor() {
                 Log.e("Pusher", "❌ Auth failed for chat $chatId: $message", e)
             }
         })
+
+        subscribedChannels.add(channelName)
 
         // Bind events on this specific chat channel instance
         channel?.let {
@@ -198,6 +208,10 @@ actual class PusherManager actual constructor() {
 
     actual fun subscribeToPresenceChannel(chatId: Long) {
         val channelName = "presence-chat-presence.$chatId"
+        if (subscribedChannels.contains(channelName)) {
+            Log.w("Pusher", "⚠️ Already subscribed to $channelName")
+            return
+        }
         val presenceChannel = pusher?.subscribePresence(channelName, object :
             PresenceChannelEventListener {
 
@@ -217,6 +231,8 @@ actual class PusherManager actual constructor() {
 
             override fun onSubscriptionSucceeded(channelName: String?) {
                 Log.d("Presence", "✅ Subscribed to presence channel: $channelName")
+                subscribedChannels.add(channelName.toString())
+
             }
 
             override fun onUsersInformationReceived(channelName: String?, users: MutableSet<User>?) {

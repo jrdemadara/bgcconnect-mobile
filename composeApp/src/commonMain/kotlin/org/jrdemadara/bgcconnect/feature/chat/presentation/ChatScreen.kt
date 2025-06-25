@@ -135,11 +135,11 @@ fun ChatScreen(navController: NavController, paddingValues: PaddingValues) {
                 items(chats) { chat ->
                     ChatItem(
                         chatId = chat.chatId,
-                        userName = chat.fullName ?: "Unknown", // You can fetch the name of the chat
-                        message = chat.lastMessage ?: "You can now start your conversation.", // Get last message if available
-                        date = chat.timestamp ?: "No date", // Get timestamp if available
-                        avatar = chat.avatar ?: Res.drawable.u1.toString(), // Provide a default avatar if not available
-                        status = "unread",
+                        userName = chat.fullName ?: "Unknown",
+                        message = chat.lastMessage ?: "You can now start your conversation.",
+                        isRead = chat.isRead!!,
+                        date = chat.timestamp ?: "No date",
+                        avatar = chat.avatar ?: Res.drawable.u1.toString(),
                         isOnline = chat.isOnline ?: false,
                         navController = navController
                     )
@@ -157,9 +157,9 @@ fun ChatItem(
     chatId: Long,
     userName: String,
     message: String,
+    isRead: Boolean,
     date: String,
     avatar: String,
-    status: String,
     isOnline: Boolean,
     navController: NavController
 ) {
@@ -209,7 +209,7 @@ fun ChatItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = userName.capitalizeWords(),
-                fontWeight = if (status == "unread") FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (!isRead) FontWeight.Bold else FontWeight.Normal
             )
             Text(
                 text = message,
@@ -217,7 +217,7 @@ fun ChatItem(
                 color = Color.Gray,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                fontWeight = if (status == "unread") FontWeight.Bold else FontWeight.Normal
+                fontWeight = if (!isRead) FontWeight.Bold else FontWeight.Normal
             )
         }
 

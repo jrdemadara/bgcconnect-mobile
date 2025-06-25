@@ -33,7 +33,8 @@ class LoginViewModel(
         viewModelScope.launch {
             _state.value = LoginState.Loading
             try {
-                val result = loginUseCase(phone, password)
+                println("✅ Login FCM: ${sessionManager.getFCMToken().toString()}")
+                val result = loginUseCase(phone, password, sessionManager.getFCMToken().toString())
                 _state.value = LoginState.Success("Success!")
                 sessionManager.saveSession(result.accessToken, result.data)
                 pusherManager.authenticate()

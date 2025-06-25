@@ -5,6 +5,7 @@ data class ChatListItem(
     val fullName: String,
     val avatar: String?,
     val lastMessage: String?,
+    val isRead: Boolean?,
     val timestamp: String?,
     val isOnline: Boolean?
 )

@@ -4,29 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import org.jrdemadara.bgcconnect.core.firebase.FirebaseEventManager
-import org.jrdemadara.bgcconnect.core.local.SessionManager
-import org.jrdemadara.bgcconnect.core.pusher.RealtimeEventManager
-import org.jrdemadara.bgcconnect.data.SyncApi
+import org.jrdemadara.bgcconnect.core.pusher.PusherEventManager
 
 class AppViewModel(
-    private val realtimeEventManager: RealtimeEventManager,
-    private val sessionManager: SessionManager,
-    private val syncApi: SyncApi,
-    private val topicManager: FirebaseEventManager
-
+    private val pusherEventManager: PusherEventManager,
+    private val firebaseEventManager: FirebaseEventManager,
 ) : ViewModel() {
 
     init {
-        topicManager.subscribeToTopic("message-request")
         viewModelScope.launch {
-            realtimeEventManager.start()
+            pusherEventManager.start()
+            firebaseEventManager.start()
+            firebaseEventManager.subscribeToTopic("draw")
             println("🚀 AppViewModel initialized, RealtimeEventManager started.")
-            println("🚀 FCM Token: ${sessionManager.getFCMToken()}")
         }
-    }
-
-    suspend fun syncFCMTokenToServer(){
-        syncApi.syncFCM(sessionManager.getFCMToken().toString())
-        println("🚀 FCM Token: ${sessionManager.getFCMToken()}")
     }
 }

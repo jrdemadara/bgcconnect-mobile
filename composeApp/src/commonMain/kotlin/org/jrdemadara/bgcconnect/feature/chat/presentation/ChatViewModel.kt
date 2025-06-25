@@ -44,9 +44,9 @@ class ChatViewModel(
             combine(chatList.map { chat ->
                 val otherUserId = chatDao.getOtherParticipantId(chat.id, id.toLong())
 
-                val userNameFlow = flowOf(userDao.getUserName(otherUserId)) // if static
-                val avatarFlow = flowOf(userDao.getAvatar(otherUserId))     // if static
-                val lastMessageFlow = flowOf(messageDao.getLastMessageForChat(chat.id)) // or make this a Flow
+                val userNameFlow = flowOf(userDao.getUserName(otherUserId))
+                val avatarFlow = flowOf(userDao.getAvatar(otherUserId))
+                val lastMessageFlow = messageDao.getLastMessageForChat(id.toLong(), chat.id)
                 val isOnlineFlow = userDao.getOnlineStatus(otherUserId)
 
                 combine(userNameFlow, avatarFlow, lastMessageFlow, isOnlineFlow) { name, avatar, lastMessage, isOnline ->
@@ -55,6 +55,7 @@ class ChatViewModel(
                         fullName = name,
                         avatar = avatar,
                         lastMessage = lastMessage?.content,
+                        isRead = (lastMessage?.isRead ?: 0).toInt() == 1,
                         timestamp = lastMessage?.createdAt,
                         isOnline = isOnline
                     )
