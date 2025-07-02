@@ -1,4 +1,4 @@
-package org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation
+package org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,9 +25,9 @@ import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.ChatDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageStatusDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.UserDao
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.TopBarData
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.MarkAsReadUseCase
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.SendMessageUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.dto.TopBarData
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.usecases.MarkAsReadUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.usecases.SendMessageUseCase
 import org.jrdemadara.bgcconnect.getCurrentTimestamp
 import org.jrdemadara.bgcconnect.util.retry
 import kotlin.time.ExperimentalTime
@@ -52,7 +52,8 @@ class ThreadViewModel(
     private val token = sessionManager.getToken()
     val id = sessionManager.getUserId()
     private val _sendChatState = MutableStateFlow<SendChatState>(
-        SendChatState.Idle)
+        SendChatState.Idle
+    )
     val sendChatState = _sendChatState.asStateFlow()
 
     init {

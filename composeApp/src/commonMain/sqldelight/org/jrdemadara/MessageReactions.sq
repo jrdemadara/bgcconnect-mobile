@@ -1,0 +1,58 @@
+CREATE TABLE MessageReactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    remoteId INTEGER,
+    messageId INTEGER NOT NULL,
+    userId INTEGER NOT NULL,
+    reaction TEXT NOT NULL,
+    sendStatus TEXT NOT NULL DEFAULT 'pending', -- current user: pending, sent, failed -- other user: recieved
+    isDeleted INTEGER NOT NULL DEFAULT 0,
+    updatedAt TEXT NOT NULL
+);
+
+insertMessageReaction:
+INSERT INTO MessageReactions (
+    remoteId,
+    messageId,
+    userId,
+    reaction,
+    sendStatus,
+    updatedAt
+) VALUES (
+    ?, ?, ?, ?, ?, ?
+);
+
+updateMessageReaction:
+UPDATE MessageReactions
+SET reaction = :reaction,
+    sendStatus = :sendStatus,
+    updatedAt = :updatedAt
+WHERE userId = :userId
+  AND messageId = :messageId
+  AND reaction != :reaction;
+
+updateMessageReactionSendStatus:
+UPDATE MessageReactions
+SET remoteId = :remoteId,
+    sendStatus = :sendStatus,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+softDeleteMessageReaction:
+UPDATE MessageReactions
+SET isDeleted = 1
+WHERE id = :id;
+
+hardDeleteMessageReaction:
+DELETE FROM MessageReactions
+WHERE id = :id;
+
+getReactionByMessageAndUser:
+SELECT *
+FROM MessageReactions
+WHERE messageId = :messageId AND userId = :userId AND isDeleted = 0
+LIMIT 1;
+
+getPendingReactions:
+SELECT *
+FROM MessageReactions
+WHERE sendStatus = "pending" OR sendStatus = "failed" AND isDeleted = 0;

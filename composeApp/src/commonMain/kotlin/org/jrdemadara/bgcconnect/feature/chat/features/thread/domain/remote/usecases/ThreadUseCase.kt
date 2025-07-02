@@ -1,4 +1,6 @@
-package org.jrdemadara.bgcconnect.feature.chat.features.thread.domain
+package org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.usecases
+
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.repository.ThreadRepository
 
 class SendMessageUseCase(
     private val repository: ThreadRepository

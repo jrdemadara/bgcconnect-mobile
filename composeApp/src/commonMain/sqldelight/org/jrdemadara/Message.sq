@@ -13,26 +13,29 @@ CREATE TABLE Message (
 
 selectMessagesByChat:
 SELECT
-    Message.id AS messageId,
-    Message.remoteId AS remoteId,
-    Message.chatId,
-    Message.content,
-    Message.senderId,
-    Message.createdAt,
-    Message.replyTo, -- this refers to remoteId
-    Message.sendStatus,
-    MessageStatus.status,
-    ReplyMessage.content AS replyContent,
-    ReplyMessage.senderId AS replySenderId,
-    ReplyMessage.createdAt AS replyCreatedAt
+  Message.id AS messageId,
+  Message.remoteId AS remoteId,
+  Message.chatId,
+  Message.content,
+  Message.senderId,
+  Message.createdAt,
+  Message.replyTo,
+  Message.sendStatus,
+  MessageStatus.status,
+  ReplyMessage.content AS replyContent,
+  ReplyMessage.senderId AS replySenderId,
+  ReplyMessage.createdAt AS replyCreatedAt,
+  GROUP_CONCAT(MessageReactions.reaction, ',') AS reactions
 FROM Message
 LEFT JOIN (
-    SELECT messageId, MAX(status) AS status
-    FROM MessageStatus
-    GROUP BY messageId
+  SELECT messageId, MAX(status) AS status
+  FROM MessageStatus
+  GROUP BY messageId
 ) AS MessageStatus ON Message.id = MessageStatus.messageId
 LEFT JOIN Message AS ReplyMessage ON Message.replyTo = ReplyMessage.remoteId
+LEFT JOIN MessageReactions ON Message.id = MessageReactions.messageId
 WHERE Message.chatId = :chatId
+GROUP BY Message.id -- 🔴 REQUIRED when using GROUP_CONCAT
 ORDER BY Message.createdAt DESC;
 
 getUnsentMessages:

@@ -9,7 +9,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.FocusInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -92,6 +91,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation.viewmodels.MessageReactionViewModel
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation.viewmodels.ThreadViewModel
 import org.jrdemadara.bgcconnect.ui.components.TopBarThread
 import org.jrdemadara.bgcconnect.ui.components.TypingIndicator
 import org.jrdemadara.bgcconnect.util.formatTimestamp
@@ -102,6 +103,7 @@ import org.koin.compose.viewmodel.koinViewModel
 fun ThreadScreen(navController: NavController, chatId: Int) {
     val scope = rememberCoroutineScope()
     val viewModel = koinViewModel<ThreadViewModel>()
+    val viewModelMessageReaction = koinViewModel<MessageReactionViewModel>()
     val topBarData by viewModel.topBarData.collectAsState()
     val messages by viewModel.messages.collectAsState()
     val isTyping by viewModel.typingState.collectAsState(initial = false)
@@ -231,6 +233,12 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
                                 modifier = Modifier
                                     .size(36.dp)
                                     .clickable {
+                                        viewModelMessageReaction.onReact(
+                                            messageId = selectedMessage,
+                                            userId = viewModel.id.toLong(),
+                                            reaction = emoji
+                                        )
+                                        showBottomSheet = false
                                     println("Emoji react $emoji to: ${selectedMessage}")
                                 },
                             )
@@ -241,6 +249,12 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
                                 modifier = Modifier
                                     .clickable {
                                         // handle emoji reaction
+                                        viewModelMessageReaction.onReact(
+                                            messageId = selectedMessage,
+                                            userId = viewModel.id.toLong(),
+                                            reaction = emoji
+                                        )
+                                        showBottomSheet = false
                                         println("Emoji react $emoji to: ${selectedMessage}")
                                     }
                                     .padding(4.dp)
@@ -395,6 +409,43 @@ fun ThreadScreen(navController: NavController, chatId: Int) {
                                             Color.White else Color.Black,
                                         style = MaterialTheme.typography.bodyLarge
                                     )
+
+                                    // Reactions (add this block below the content)
+                                    if (!message.reactions.isNullOrEmpty()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(
+                                            modifier = Modifier
+                                                .wrapContentWidth()
+                                                .background(
+                                                    color = if (message.senderId == viewModel.id.toLong())
+                                                        Color.White.copy(alpha = 0.1f)
+                                                    else
+                                                        Color.LightGray.copy(alpha = 0.3f),
+                                                    shape = RoundedCornerShape(12.dp)
+                                                )
+                                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            message.reactions?.split(",")?.forEach { reaction ->
+                                                println("this is my reaction $reaction")
+                                                if (reaction == "one-heart") {
+                                                    Image(
+                                                        painter = painterResource(Res.drawable.one_heart),
+                                                        contentDescription = "One Heart",
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = reaction,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        fontSize = 18.sp,
+                                                        color = if (message.senderId == viewModel.id.toLong()) Color.White else Color.Black
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

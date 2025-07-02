@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -33,7 +32,7 @@ import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.MessageStatusDao
 import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.UserDao
 import org.jrdemadara.bgcconnect.feature.chat.data.remote.ChatCreatedDto
 import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.MessageRequestDao
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageReceiveDto
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.dto.MessageReceiveDto
 
 class FirebaseEventManager(
     private val client: HttpClient,

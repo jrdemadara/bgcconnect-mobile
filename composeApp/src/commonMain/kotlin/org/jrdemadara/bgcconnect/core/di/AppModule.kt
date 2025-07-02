@@ -29,15 +29,29 @@ import org.jrdemadara.bgcconnect.feature.chat.features.search_member.data.Search
 import org.jrdemadara.bgcconnect.feature.chat.features.search_member.domain.SearchMemberRepository
 import org.jrdemadara.bgcconnect.feature.chat.features.search_member.domain.SearchMemberUseCase
 import org.jrdemadara.bgcconnect.feature.chat.features.search_member.presentation.SearchMemberViewModel
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.ThreadApi
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.SendMessageUseCase
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.ThreadRepository
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation.ThreadViewModel
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.local.MessageReactionDao
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.local.MessageReactionDaoImpl
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.local.MessageReactionRepositoryImpl
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.api.MessageReactionApi
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.api.ThreadApi
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.impl.MessageReactionRepositoryImpl as RemoteMessageReactionRepositoryImpl
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.usecases.SendMessageUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.repository.ThreadRepository
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation.viewmodels.ThreadViewModel
 import org.jrdemadara.bgcconnect.feature.chat.presentation.ChatViewModel
 import org.jrdemadara.bgcconnect.feature.login.data.LoginApi
 import org.jrdemadara.bgcconnect.feature.login.data.LoginRepositoryImpl
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.ThreadRepositoryImpl
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.MarkAsReadUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.impl.ThreadRepositoryImpl
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.usecases.MarkAsReadUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.local.DeleteReactionUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.local.GetPendingReactionsUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.local.InsertReactionUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.local.MessageReactionRepository
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.repository.MessageReactionRepository as RemoteMessageReactionRepository
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.local.ReactToMessageUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.local.UpdateReactionStatusUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.usecases.SendMessageReactionUseCase
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.presentation.viewmodels.MessageReactionViewModel
 import org.jrdemadara.bgcconnect.feature.login.domain.LoginRepository
 import org.jrdemadara.bgcconnect.feature.login.domain.LoginUseCase
 import org.jrdemadara.bgcconnect.feature.login.presentation.LoginViewModel
@@ -64,7 +78,7 @@ val appModule = module {
 
     // Real-time & messaging
     single { PusherManager() }
-    single { PusherEventManager(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { PusherEventManager(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 
     single { FirebaseManager() }
     single { FirebaseEventManager(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
@@ -103,6 +117,7 @@ val appModule = module {
     single { SendMessageUseCase(get()) }
     single { MarkAsReadUseCase(get()) }
     viewModel { ThreadViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
+
 
 
     // App-level ViewModel

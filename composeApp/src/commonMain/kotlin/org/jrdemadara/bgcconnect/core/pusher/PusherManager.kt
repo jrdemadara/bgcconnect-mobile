@@ -21,5 +21,6 @@ expect class PusherManager() {
     val chatDelivered: Flow<String>
     val chatRead: Flow<String>
     val typing: Flow<String>
+    val messageReactions: Flow<String>
     val userStatus: Flow<String>
 }

@@ -1,4 +1,4 @@
-package org.jrdemadara.bgcconnect.feature.chat.features.thread.domain
+package org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.remote.repository
 
 interface ThreadRepository {
     suspend fun sendMessage(localId : Int, chatId: Int, content: String, messageType: String, replyTo: Int?, tempId: Int, token: String): String

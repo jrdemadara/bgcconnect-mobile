@@ -57,6 +57,11 @@ actual class PusherManager actual constructor() {
         extraBufferCapacity = 10
     )
 
+    private val _messageReaction = MutableSharedFlow<String>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
+
     private val _userStatus = MutableSharedFlow<String>()
 
 //    actual val userJoined: Flow<String>
@@ -82,6 +87,9 @@ actual class PusherManager actual constructor() {
 
     actual val typing: Flow<String>
         get() = _typing.asSharedFlow()
+
+    actual val messageReactions: Flow<String>
+        get() = _messageReaction.asSharedFlow()
 
     actual val userStatus: Flow<String>
         get() = _userStatus.asSharedFlow()
@@ -179,6 +187,7 @@ actual class PusherManager actual constructor() {
             bindChatEvent("chat-delivered", it, _chatDelivered)
             bindChatEvent("chat-read", it, _chatRead)
             bindChatEvent("client-typing", it, _typing)
+            bindChatEvent("message-reaction", it, _messageReaction)
         }
     }
 

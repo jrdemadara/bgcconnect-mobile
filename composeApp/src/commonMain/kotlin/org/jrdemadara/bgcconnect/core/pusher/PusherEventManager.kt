@@ -20,8 +20,10 @@ import org.jrdemadara.bgcconnect.feature.chat.data.local.dao.UserDao
 import org.jrdemadara.bgcconnect.feature.chat.data.remote.ChatCreatedDto
 import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.IncomingRequest
 import org.jrdemadara.bgcconnect.feature.chat.features.message_request.data.MessageRequestDao
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageRead
-import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.MessageReceiveDto
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.dto.MessageReactionData
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.dto.MessageRead
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.data.remote.dto.MessageReceiveDto
+import org.jrdemadara.bgcconnect.feature.chat.features.thread.domain.local.InsertReactionUseCase
 
 class PusherEventManager(
     private val pusherManager: PusherManager,
@@ -32,6 +34,7 @@ class PusherEventManager(
     private val chatParticipantDao: ChatParticipantDao,
     private val messageDao: MessageDao,
     private val messageStatusDao: MessageStatusDao,
+    private val insertReactionUseCase: InsertReactionUseCase
 ) {
     private val id = sessionManager.getUserId()
     private val now = Clock.System.now().toString()
@@ -49,19 +52,20 @@ class PusherEventManager(
         observeChatCreated()
         observeChatReceived()
         observeChatRead()
+        observeMessageReaction()
        // observeSubscribeUser()
         // Add more observers here if needed
     }
 
-    private fun observeSubscribeUser() {
-        println("🧐 Observing User Auth Token")
-        CoroutineScope(Dispatchers.Default).launch {
-            sessionManager.observeUserId().collect { userId ->
-                println("User ID changed: $userId")
-                pusherManager.subscribeToUserChannel(userId.toLong())
-            }
-        }
-    }
+//    private fun observeSubscribeUser() {
+//        println("🧐 Observing User Auth Token")
+//        CoroutineScope(Dispatchers.Default).launch {
+//            sessionManager.observeUserId().collect { userId ->
+//                println("User ID changed: $userId")
+//                pusherManager.subscribeToUserChannel(userId.toLong())
+//            }
+//        }
+//    }
 
     private fun observeMessageRequests() {
         println("🧐 Observing Message Request Event")
@@ -230,6 +234,22 @@ class PusherEventManager(
                 } catch (e: Exception) {
                     println("❌ Failed to parse MessageReadPayload: ${e.message}")
                 }
+            }
+        }
+    }
+
+    private fun observeMessageReaction() {
+        println("🧐 Observing Message Reaction Event")
+        CoroutineScope(Dispatchers.Default).launch {
+            pusherManager.messageReactions.collect { rawJson ->
+                val messageReaction = Json.decodeFromString<MessageReactionData>(rawJson)
+                println("✅ Message Reaction Event: $messageReaction")
+                insertReactionUseCase.invoke(
+                    remoteId = messageReaction.id,
+                    messageId = messageReaction.messageId,
+                    userId = messageReaction.userId,
+                    reaction = messageReaction.reaction,
+                )
             }
         }
     }

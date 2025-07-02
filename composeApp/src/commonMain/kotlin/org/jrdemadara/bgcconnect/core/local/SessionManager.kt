@@ -9,7 +9,7 @@ import com.russhwolf.settings.coroutines.toSuspendSettings
 import kotlinx.coroutines.flow.Flow
 import org.jrdemadara.bgcconnect.feature.login.data.LoginDto
 
-class SessionManager(private val observableSettings:  ObservableSettings) {
+class SessionManager(private val settings:  Settings) {
 
 
     companion object {
@@ -29,47 +29,47 @@ class SessionManager(private val observableSettings:  ObservableSettings) {
     }
 
     fun saveSession(token: String, data: LoginDto) {
-        observableSettings.putString(KEY_TOKEN, token)
-        observableSettings.putInt(KEY_USER_ID, data.id)
-        observableSettings.putString(KEY_PHONE, data.phone)
-        observableSettings.putString(KEY_CODE, data.code)
-        observableSettings.putInt(KEY_POINTS, data.points)
-        observableSettings.putInt(KEY_LEVEL, data.level)
-        observableSettings.putString(KEY_FIRSTNAME, data.firstname)
-        observableSettings.putString(KEY_LASTNAME, data.lastname)
-        observableSettings.putString(KEY_MIDDLENAME, data.middlename)
-        observableSettings.putString(KEY_EXTENSION, data.extension ?: "")
-        observableSettings.putString(KEY_AVATAR, data.avatar ?: "")
+        settings.putString(KEY_TOKEN, token)
+        settings.putInt(KEY_USER_ID, data.id)
+        settings.putString(KEY_PHONE, data.phone)
+        settings.putString(KEY_CODE, data.code)
+        settings.putInt(KEY_POINTS, data.points)
+        settings.putInt(KEY_LEVEL, data.level)
+        settings.putString(KEY_FIRSTNAME, data.firstname)
+        settings.putString(KEY_LASTNAME, data.lastname)
+        settings.putString(KEY_MIDDLENAME, data.middlename)
+        settings.putString(KEY_EXTENSION, data.extension ?: "")
+        settings.putString(KEY_AVATAR, data.avatar ?: "")
     }
 
     fun saveFCMToken(fcmToken: String) {
-        observableSettings.putString(KEY_FCM_TOKEN, fcmToken)
+        settings.putString(KEY_FCM_TOKEN, fcmToken)
     }
 
     fun clearSession() {
-        observableSettings.clear()
+        settings.clear()
     }
 
     fun isLoggedIn(): Boolean {
-        return observableSettings.hasKey(KEY_TOKEN)
+        return settings.hasKey(KEY_TOKEN)
     }
 
-    fun getToken(): String? = observableSettings.getStringOrNull(KEY_TOKEN)
-    fun getFCMToken(): String? = observableSettings.getStringOrNull(KEY_FCM_TOKEN)
-    fun getUserId(): Int = observableSettings.getInt(KEY_USER_ID, -1)
+    fun getToken(): String? = settings.getStringOrNull(KEY_TOKEN)
+    fun getFCMToken(): String? = settings.getStringOrNull(KEY_FCM_TOKEN)
+    fun getUserId(): Int = settings.getInt(KEY_USER_ID, -1)
     @OptIn(ExperimentalSettingsApi::class)
-    fun observeUserId(): Flow<Int> = observableSettings.getIntFlow(KEY_USER_ID, -1)
-    fun getCode(): String = observableSettings.getString(KEY_CODE, "")
-    fun getPhone(): String = observableSettings.getString(KEY_PHONE, "")
-    fun getPoints(): Int = observableSettings.getInt(KEY_POINTS, -1)
+    fun observeUserId(): Int = settings.getInt(KEY_USER_ID, -1)
+    fun getCode(): String = settings.getString(KEY_CODE, "")
+    fun getPhone(): String = settings.getString(KEY_PHONE, "")
+    fun getPoints(): Int = settings.getInt(KEY_POINTS, -1)
 
-    fun getFirstName(): String = observableSettings.getString(KEY_FIRSTNAME, "")
+    fun getFirstName(): String = settings.getString(KEY_FIRSTNAME, "")
 
     fun getFullName(): String {
-        return "${observableSettings.getString(KEY_FIRSTNAME, "")} ${observableSettings.getString(KEY_LASTNAME, "")}".trim()
+        return "${settings.getString(KEY_FIRSTNAME, "")} ${settings.getString(KEY_LASTNAME, "")}".trim()
     }
 
-    fun getAvatarUrl(): String? = observableSettings.getStringOrNull(KEY_AVATAR)
+    fun getAvatarUrl(): String? = settings.getStringOrNull(KEY_AVATAR)
 
 
 }
